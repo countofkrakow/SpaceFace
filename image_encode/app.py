@@ -269,9 +269,7 @@ def encode_image():
             print(aligned_path is None)
             optimize_latents(aligned_path)
 
-            #np.save(fname, latent)
-            #return {"latent": latent.tolist()}
-            return 'hell no!'
+            return filename
     return '''
     <!doctype html>
     <title>Upload new File</title>
