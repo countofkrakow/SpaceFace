@@ -64,32 +64,32 @@ class PerceptualModel:
         self.sess = tf.get_default_session() if sess is None else sess
         K.set_session(self.sess)
         self.epsilon = 0.00000001
-        self.lr = args.lr
-        self.decay_rate = args.decay_rate
-        self.decay_steps = args.decay_steps
-        self.img_size = args.image_size
-        self.layer = args.use_vgg_layer
-        self.vgg_loss = args.use_vgg_loss
-        self.face_mask = args.face_mask
-        self.use_grabcut = args.use_grabcut
-        self.scale_mask = args.scale_mask
-        self.mask_dir = args.mask_dir
+        self.lr = args['lr']
+        self.decay_rate = args['decay_rate']
+        self.decay_steps = args['decay_steps']
+        self.img_size = args['image_size']
+        self.layer = args['use_vgg_layer']
+        self.vgg_loss = args['use_vgg_loss']
+        self.face_mask = args['face_mask']
+        self.use_grabcut = args['use_grabcut']
+        self.scale_mask = args['scale_mask']
+        self.mask_dir = args['mask_dir']
         if (self.layer <= 0 or self.vgg_loss <= self.epsilon):
             self.vgg_loss = None
-        self.pixel_loss = args.use_pixel_loss
+        self.pixel_loss = args['use_pixel_loss']
         if (self.pixel_loss <= self.epsilon):
             self.pixel_loss = None
-        self.mssim_loss = args.use_mssim_loss
+        self.mssim_loss = args['use_mssim_loss']
         if (self.mssim_loss <= self.epsilon):
             self.mssim_loss = None
-        self.lpips_loss = args.use_lpips_loss
+        self.lpips_loss = args['use_lpips_loss']
         if (self.lpips_loss <= self.epsilon):
             self.lpips_loss = None
-        self.l1_penalty = args.use_l1_penalty
+        self.l1_penalty = args['use_l1_penalty']
         if (self.l1_penalty <= self.epsilon):
             self.l1_penalty = None
-        self.adaptive_loss = args.use_adaptive_loss
-        self.sharpen_input = args.sharpen_input
+        self.adaptive_loss = args['use_adaptive_loss']
+        self.sharpen_input = args['sharpen_input']
         self.batch_size = batch_size
         if perc_model is not None and self.lpips_loss is not None:
             self.perc_model = perc_model
@@ -101,7 +101,7 @@ class PerceptualModel:
         self.ref_img_features = None
         self.features_weight = None
         self.loss = None
-        self.discriminator_loss = args.use_discriminator_loss
+        self.discriminator_loss = args['use_discriminator_loss']
         if (self.discriminator_loss <= self.epsilon):
             self.discriminator_loss = None
         if self.discriminator_loss is not None:
