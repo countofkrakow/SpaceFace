@@ -4,13 +4,14 @@ import numpy as np
 from tqdm import tqdm
 import json
 import sys
+import time
 from models.model_settings import MODEL_POOL
 from io import BytesIO
 from models.stylegan_generator import StyleGANGenerator
 from utils.logger import setup_logger
 from utils.manipulator import linear_interpolate
 from flask import Flask, flash, request, redirect, url_for, send_file
-from zipfile import ZipFile
+from zipfile import ZipFile, ZipInfo, ZIP_DEFLATED
 from werkzeug.utils import secure_filename
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
@@ -49,10 +50,15 @@ def setup():
 def manipulate(boundary, min, max, steps):
     logger.info(f'Preparing boundary.')
 
-@app.route('/edit/<id>', methods=['POST'])
+@app.route('/edit/<id>', methods=['POST', 'GET'])
 def edit_image(id):
-    print (request.is_json)
-    content = json.loads(request.data, strict=False)
+    #print (request.is_json)
+    content = {
+    	"type":"age",
+    	"min":-1,
+    	"max":1,
+    	"steps":5
+    }
     print(content)
 
     if not content or 'type' not in content:
@@ -99,15 +105,17 @@ def edit_image(id):
                 outputs = model.easy_synthesize(interpolations_batch, **kwargs)
                 for j, img in enumerate(outputs['image']):
                     imname = f'{i}_{j}'
-                    formatted_img = cv2.imencode('.png', imname)
+                    formatted_img = cv2.imencode('.png', cv2.cvtColor(img, cv2.COLOR_RGB2BGR))[1].tobytes()
                     print(formatted_img)
-                    zf.write(imname)
+                    data = ZipInfo(imname)
+                    data.date_time = time.localtime(time.time())[:6]
+                    data.compress_type = ZIP_DEFLATED
+                    zf.writestr(data, formatted_img)
                     interpolation_id += 1
 
-        memory_file.seek(0)
-        print(memory_file)
-        assert interpolation_id == content['steps']
-        logger.debug(f'  Finished sample {sample_id:3d}.')
+    memory_file.seek(0)
+    assert interpolation_id == content['steps']
+    logger.debug(f'  Finished sample {sample_id:3d}.')
     logger.info(f'Successfully edited {total_num} samples.')
     return send_file(memory_file, attachment_filename=zipfile_name, as_attachment=True, mimetype='application/zip')
 
