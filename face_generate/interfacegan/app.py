@@ -53,11 +53,12 @@ def manipulate(boundary, min, max, steps):
 @app.route('/edit/<id>', methods=['POST', 'GET'])
 def edit_image(id):
     #print (request.is_json)
+
     content = {
-    	"type":"age",
-    	"min":-1,
-    	"max":1,
-    	"steps":5
+    	"type": request.args['type'],
+    	"min": int(request.args['min']) if 'min' in request.args else -1,
+    	"max": int(request.args['max']) if 'max' in request.args else 1,
+    	"steps": int(request.args['steps']) if 'steps' in request.args else 2
     }
     print(content)
 
