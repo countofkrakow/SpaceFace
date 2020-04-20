@@ -15,6 +15,7 @@ from flask import Flask, flash, request, redirect, url_for
 from werkzeug.utils import secure_filename
 import sys
 import bz2
+import boto3
 from keras.utils import get_file
 from keras.models import load_model
 from ffhq_dataset.face_alignment import image_align
@@ -31,6 +32,7 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
 app = Flask(__name__)
 
 args = {
+    'bucket_name': 'latents',
     'data_dir': 'data',
     'mask_dir': 'mask',
     'generated_images_dir': 'generated',
@@ -221,6 +223,7 @@ def optimize_latents(file):
         generator.set_dlatents(best_dlatent)
     generated_images = generator.generate_images()
     generated_dlatents = generator.get_dlatents()
+
     for img_array, dlatent, img_path, img_name in zip(generated_images, generated_dlatents, images_batch, names):
         mask_img = None
         if args['composite_mask'] and (args['load_mask'] or args['face_mask']):
@@ -242,7 +245,6 @@ def optimize_latents(file):
         img = PIL.Image.fromarray(img_array, 'RGB')
         img.save(os.path.join(args['generated_images_dir'], f'{img_name}.png'), 'PNG')
         np.save(os.path.join(args['latent_dir'], f'{img_name}.npy'), dlatent)
-
     generator.reset_dlatents()
 
 def allowed_file(filename):
@@ -268,6 +270,11 @@ def encode_image():
             aligned_path = align_images(file_path, ALIGNED_IMAGES_DIR)
             print(aligned_path is None)
             optimize_latents(aligned_path)
+
+            # drop latents to s3
+            s3 = boto3.client('s3')
+            latent_fname = f'{filename}.npy'
+            s3.upload_file(f'latent/{latent_fname}', args['bucket_name'], latent_fname)
 
             return filename
     return '''
