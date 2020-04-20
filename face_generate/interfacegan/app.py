@@ -5,6 +5,7 @@ from tqdm import tqdm
 import json
 import sys
 import time
+import boto3
 from models.model_settings import MODEL_POOL
 from io import BytesIO
 from models.stylegan_generator import StyleGANGenerator
@@ -80,13 +81,18 @@ def edit_image(id):
     boundary = np.load(boundary_path)
 
     logger.info(f'Preparing latent codes.')
-    latent_code_path = f'latents/{id}.npy'
+    fname = f'{id}.npy'
+    latent_code_path = f'latents/{fname}'
     if os.path.isfile(latent_code_path):
       logger.info(f'  Load latent codes from `{latent_code_path}`.')
-      latent_codes = np.load(latent_code_path)
-      latent_codes = model.preprocess(latent_codes, **kwargs)
+
     else:
-      logger.info(f'  No latent codes found. Error')
+      logger.info(f'  No latent codes found. Querying S3...')
+      s3 = boto3.client('s3')
+      s3.download_file('latents', fname, latent_code_path)
+
+    latent_codes = np.load(latent_code_path)
+    latent_codes = model.preprocess(latent_codes, **kwargs)
 
     total_num = latent_codes.shape[0]
 
