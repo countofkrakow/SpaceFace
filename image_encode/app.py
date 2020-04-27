@@ -12,7 +12,6 @@ import dnnlib.tflib as tflib
 import uuid
 from tqdm import tqdm
 from flask import Flask, flash, request, redirect, url_for
-from werkzeug.utils import secure_filename
 import sys
 import bz2
 import boto3
@@ -51,7 +50,7 @@ args = {
     'iterations': 5000,
     'decay_steps': 4,
     'early_stopping': True,
-    'early_stopping_threshold': 0.2,
+    'early_stopping_threshold': 0.1,
     'early_stopping_patience': 10,
     'load_effnet': 'data/finetuned_effnet.h5',
     'load_resnet': 'data/finetuned_resnet.h5',
@@ -288,4 +287,4 @@ def encode_image():
     '''
 
 if __name__ == '__main__':
-    app.run()
+    app.run(port=80, host='0.0.0.0')
