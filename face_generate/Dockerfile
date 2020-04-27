@@ -7,7 +7,7 @@ ARG UBUNTU_VERSION=18.04
 # *** Changed cuda version here.
 ARG ARCH=
 ARG CUDA=9.2
-FROM nvidia/cuda${ARCH:+-$ARCH}:${CUDA}-base-ubuntu${UBUNTU_VERSION} as base
+FROM nvidia/cuda${ARCH:+-$ARCH}:${CUDA}-devel-ubuntu${UBUNTU_VERSION} as base
 # ARCH and CUDA are specified again because the FROM directive resets ARGs
 # (but their default value is retained if set previously)
 ARG ARCH
@@ -27,7 +27,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         # There appears to be a regression in libcublas10=10.2.2.89-1 which
         # prevents cublas from initializing in TF. See
         # https://github.com/tensorflow/tensorflow/issues/9489#issuecomment-562394257
-        libcublas9.1 \ 
+        libcublas9.1 \
         cuda-nvrtc-${CUDA/./-} \
         cuda-cufft-${CUDA/./-} \
         cuda-curand-${CUDA/./-} \
@@ -49,7 +49,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 #         libnvinfer-plugin${LIBNVINFER_MAJOR_VERSION}=${LIBNVINFER}+cuda${CUDA} \
 #         && apt-get clean \
 #         && rm -rf /var/lib/apt/lists/*; }
-# 
+#
 # For CUDA profiling, TensorFlow requires CUPTI.
 ENV LD_LIBRARY_PATH /usr/local/cuda/extras/CUPTI/lib64:/usr/local/cuda/lib64:$LD_LIBRARY_PATH
 
@@ -87,17 +87,19 @@ RUN python3 -m pip --no-cache-dir install --upgrade \
 # ARG TF_PACKAGE=tensorflow
 # ARG TF_PACKAGE_VERSION=
 # RUN python3 -m pip install --no-cache-dir ${TF_PACKAGE}${TF_PACKAGE_VERSION:+==${TF_PACKAGE_VERSION}}
-# 
-# 
+#
+#
 # COPY bashrc /etc/bash.bashrc
 # RUN chmod a+rwx /etc/bash.bashrc
 # RUN /etc/bash.bashrc
-# 
+#
 
 # *** Bellow this line are spaceface specific things.
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt install -y python3-opencv
 
-COPY . .
+COPY . /
+EXPOSE 80
 RUN pip3 install -r requirements.txt
-CMD ["python3", "interfacegan/app.py"]
+WORKDIR "/interfacegan"
+CMD ["python3", "app.py"]
