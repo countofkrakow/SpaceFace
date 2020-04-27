@@ -13,7 +13,6 @@ from utils.logger import setup_logger
 from utils.manipulator import linear_interpolate
 from flask import Flask, flash, request, redirect, url_for, send_file
 from zipfile import ZipFile, ZipInfo, ZIP_DEFLATED
-from werkzeug.utils import secure_filename
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
 img_size = 512
@@ -110,8 +109,8 @@ def edit_image(id):
             interpolation_id = 0
             for interpolations_batch in model.get_batch_inputs(interpolations):
                 outputs = model.easy_synthesize(interpolations_batch, **kwargs)
-                for j, img in enumerate(outputs['image']):
-                    imname = f'{i}_{j}'
+                for img in outputs['image']:
+                    imname = f'{i}_{interpolation_id}'
                     formatted_img = cv2.imencode('.png', cv2.cvtColor(img, cv2.COLOR_RGB2BGR))[1].tobytes()
                     print(formatted_img)
                     data = ZipInfo(imname)
@@ -128,4 +127,4 @@ def edit_image(id):
 
 if __name__ == '__main__':
     setup()
-    app.run()
+    app.run(host= '0.0.0.0', port=80)
