@@ -127,4 +127,4 @@ def edit_image(id):
 
 if __name__ == '__main__':
     setup()
-    app.run(host= '0.0.0.0', port=80)
+    app.run(host='0.0.0.0', port=80)

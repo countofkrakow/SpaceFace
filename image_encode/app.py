@@ -19,7 +19,6 @@ from keras.utils import get_file
 from keras.models import load_model
 from ffhq_dataset.face_alignment import image_align
 from ffhq_dataset.landmarks_detector import LandmarksDetector
-import multiprocessing
 
 LANDMARKS_MODEL_URL = 'http://dlib.net/files/shape_predictor_68_face_landmarks.dat.bz2'
 MODEL_URL = 'https://drive.google.com/uc?id=1MEGjdvVpUsu1jB4zrXZN7Y4kBBOzizDQ'
@@ -42,28 +41,28 @@ args = {
     'model_url': 'https://drive.google.com/uc?id=1MEGjdvVpUsu1jB4zrXZN7Y4kBBOzizDQ',
     'model_res': 1024,
     'batch_size': 1,
-    'optimizer': 'lbfgs',
+    'optimizer': 'adam',
     'image_size': 256,
     'resnet_image_size': 256,
-    'lr': 0.1, # originally 0.25
-    'decay_rate': 0.9,
-    'iterations': 5000,
-    'decay_steps': 4,
+    'lr': 0.02,
+    'decay_rate': 0.95,
+    'iterations': 1000,
+    'decay_steps': 6,
     'early_stopping': True,
-    'early_stopping_threshold': 0.1,
+    'early_stopping_threshold': 0.03,
     'early_stopping_patience': 10,
     'load_effnet': 'data/finetuned_effnet.h5',
     'load_resnet': 'data/finetuned_resnet.h5',
     'use_preprocess_input': True,
     'use_best_loss': True,
-    'average_best_loss': 0.25,
+    'average_best_loss': 0.5,
     'sharpen_input': True,
     'use_vgg_loss': 0.4,
     'use_vgg_layer': 9,
     'use_pixel_loss': 1.5,
     'use_mssim_loss': 200,
     'use_lpips_loss': 0,
-    'use_l1_penalty': 0.5,
+    'use_l1_penalty': 0.3,
     'use_discriminator_loss': 0,
     'use_adaptive_loss': False,
     'randomize_noise': True,

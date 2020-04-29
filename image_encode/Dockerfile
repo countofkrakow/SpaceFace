@@ -6,7 +6,7 @@ ARG UBUNTU_VERSION=18.04
 
 # *** Changed cuda version here.
 ARG ARCH=
-ARG CUDA=9.2
+ARG CUDA=10.1
 FROM nvidia/cuda${ARCH:+-$ARCH}:${CUDA}-devel-ubuntu${UBUNTU_VERSION} as base
 # ARCH and CUDA are specified again because the FROM directive resets ARGs
 # (but their default value is retained if set previously)
@@ -98,9 +98,11 @@ RUN python3 -m pip --no-cache-dir install --upgrade \
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt install -y python3-opencv
 
+
+RUN apt-get update && apt-get -y install cmake protobuf-compiler
 COPY . /
 EXPOSE 80
 ADD requirements.txt .
 RUN pip3 install -r requirements.txt
-WORKDIR "/interfacegan"
+WORKDIR "."
 CMD ["python3", "app.py"]

@@ -1,0 +1,13 @@
+opencv-python
+boto3
+tqdm
+pillow
+scikit-learn
+tensorflow-gpu==1.14
+flask
+numpy==1.18
+opencv-python
+bz2file
+requests
+keras
+dlib
