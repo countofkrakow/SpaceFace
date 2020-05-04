@@ -18,5 +18,5 @@ SpaceFace is an app for neural face editing.
 For more information, the notebooks contain the basic idea of this project.
 
 Models used:
-  InterFaceGan - for face manipulation
-  StyleGan2 - for encoding latent vectors
+* InterFaceGan - for face manipulation
+* StyleGan2 - for encoding latent vectors
