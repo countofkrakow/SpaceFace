@@ -46,7 +46,7 @@ args = {
     'resnet_image_size': 256,
     'lr': 0.02,
     'decay_rate': 0.95,
-    'iterations': 1000,
+    'iterations': 100,
     'decay_steps': 6,
     'early_stopping': True,
     'early_stopping_threshold': 0.03,
