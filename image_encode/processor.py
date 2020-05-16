@@ -265,81 +265,58 @@ def run():
     )
     message = response['Messages'][0]
     handle = message['ReceiptHandle']
+    while True
+        body = json.loads(message['Body'])
+        ct = body['content-type']
+        fileId = body['filename']
+        print(response)
+        print(handle)
+        print(fileId)
 
-    body = json.loads(message['Body'])
-    ct = body['content-type']
-    fileId = body['filename']
-    print(response)
-    print(handle)
-    print(fileId)
+        file_path = os.path.join(os.path.realpath('raw'), fileId)
+        image_path = f'{file_path}.png'
 
-    file_path = os.path.join(os.path.realpath('raw'), fileId)
-    image_path = f'{file_path}.png'
+        # io.BytesIO(image_data)
 
-    # io.BytesIO(image_data)
+        print(response)
+        response = s3.get_object(Bucket=IMAGES_BUCKET, Key=fileId)
+        b = response['Body'].read()
 
-    print(response)
-    response = s3.get_object(Bucket=IMAGES_BUCKET, Key=fileId)
-    b = response['Body'].read()
+        imgInput = ''
+        lst = []
+        for part in decoder.MultipartDecoder(b, ct).parts:
+            lst.append(part.text)
+        newFile = f'{fileId}_'
+        response = s3.put_object(Body=lst[0].encode('iso-8859-1'),  Bucket=IMAGES_BUCKET,  Key=newFile)
 
-    imgInput = ''
-    lst = []
-    for part in decoder.MultipartDecoder(b, ct).parts:
-        lst.append(part.text)
-    newFile = f'{fileId}_'
-    response = s3.put_object(Body=lst[0].encode('iso-8859-1'),  Bucket=IMAGES_BUCKET,  Key=newFile)
+        # download file
+        with open(file_path, 'wb') as data:
+            s3.download_fileobj(IMAGES_BUCKET, newFile, data)
 
-    # download file
-    with open(file_path, 'wb') as data:
-        s3.download_fileobj(IMAGES_BUCKET, newFile, data)
-
-    image = Image.open(file_path)
-    # image.show()
+        image = Image.open(file_path)
+        # image.show()
 
 
-    aligned_path = align_images(file_path, ALIGNED_IMAGES_DIR)
-    print('aligned path')
-    print(aligned_path)
-    optimize_latents(aligned_path)
-    latent_fname = f'{fileId}.npy'
-    print('poop')
-    s3.upload_file(f'latent/{latent_fname}', LATENT_BUCKET, latent_fname)
-    print('dohn')
+        aligned_path = align_images(file_path, ALIGNED_IMAGES_DIR)
+        print('aligned path')
+        print(aligned_path)
+        optimize_latents(aligned_path)
+        latent_fname = f'{fileId}.npy'
+        print('poop')
+        s3.upload_file(f'latent/{latent_fname}', LATENT_BUCKET, latent_fname)
+        print('dohn')
 
-    # if request.method == 'POST':
-    #     # check if the post request has the file part
-    #     if not request.files:
-    #         return 'no file found'
-    #     file = request.files['file']
-    #     # if user does not select file, browser also
-    #     # submit an empty part without filename
-    #     if file.filename == '':
-    #         flash('No selected file')
-    #         return redirect(request.url)
-    #     if file and allowed_file(file.filename):
-    #         filename = str(uuid.uuid1())
-    #         file_path = os.path.join(os.path.realpath('raw'), filename)
-    #         file.save(file_path)
-    #
-    #         aligned_path = align_images(file_path, ALIGNED_IMAGES_DIR)
-    #         print(aligned_path is None)
-    #         optimize_latents(aligned_path)
-    #
-    #         # drop latents to s3
-    #         s3 = boto3.client('s3')
-    #         latent_fname = f'{filename}.npy'
-    #         s3.upload_file(f'latent/{latent_fname}', args['bucket_name'], latent_fname)
-    #
-    #         return filename
-    # return '''
-    # <!doctype html>
-    # <title>Upload new File</title>
-    # <h1>Upload new File</h1>
-    # <form method=post enctype=multipart/form-data>
-    #   <input type=file name=file>
-    #   <input type=submit value=Upload>
-    # </form>
-    # '''
+        sqs.delete_message(QueueUrl=QUEUE_URL, ReceiptHandle=handle)
+
+        response = sqs.receive_message(
+            QueueUrl=QUEUE_URL,
+            WaitTimeSeconds=10
+        )
+        if 'Messages' not in response:
+            break
+        message = response['Messages'][0]
+        handle = message['ReceiptHandle']
+
 
 if __name__ == '__main__':
     # todo process the entire queue then exit
