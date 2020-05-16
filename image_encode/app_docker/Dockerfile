@@ -102,7 +102,7 @@ RUN apt install -y python3-opencv
 RUN apt-get update && apt-get -y install cmake protobuf-compiler
 COPY . /
 EXPOSE 80
-ADD requirements.txt .
+ADD app_docker/requirements.txt .
 RUN pip3 install -r requirements.txt
 WORKDIR "."
 CMD ["python3", "app.py"]
