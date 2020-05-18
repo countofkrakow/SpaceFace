@@ -3,9 +3,7 @@ boto3
 tqdm
 pillow
 scikit-learn
-tensorflow-gpu==1.14
 numpy==1.18
-opencv-python
 bz2file
 requests
 keras

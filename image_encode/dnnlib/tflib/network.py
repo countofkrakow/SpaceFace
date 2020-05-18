@@ -138,8 +138,8 @@ class Network:
         if self.name is None:
             self.name = self._build_func_name
         assert re.match("^[A-Za-z0-9_.\\-]*$", self.name)
-        with tf.name_scope(None):
-            self.scope = tf.get_default_graph().unique_name(self.name, mark_as_used=True)
+        with tf.compat.v1.name_scope(None):
+            self.scope = tf.compat.v1.get_default_graph().unique_name(self.name, mark_as_used=True)
 
         # Finalize build func kwargs.
         build_kwargs = dict(self.static_kwargs)
@@ -147,9 +147,9 @@ class Network:
         build_kwargs["components"] = self.components
 
         # Build template graph.
-        with tfutil.absolute_variable_scope(self.scope, reuse=tf.AUTO_REUSE), tfutil.absolute_name_scope(self.scope):  # ignore surrounding scopes
-            assert tf.get_variable_scope().name == self.scope
-            assert tf.get_default_graph().get_name_scope() == self.scope
+        with tfutil.absolute_variable_scope(self.scope, reuse=tf.compat.v1.AUTO_REUSE), tfutil.absolute_name_scope(self.scope):  # ignore surrounding scopes
+            assert tf.compat.v1.get_variable_scope().name == self.scope
+            assert tf.compat.v1.get_default_graph().get_name_scope() == self.scope
             with tf.control_dependencies(None):  # ignore surrounding control dependencies
                 self.input_templates = [tf.placeholder(tf.float32, name=name) for name in self.input_names]
                 out_expr = self._build_func(*self.input_templates, **build_kwargs)
@@ -447,7 +447,7 @@ class Network:
             mb_end = min(mb_begin + minibatch_size, num_items)
             mb_num = mb_end - mb_begin
             mb_in = [src[mb_begin : mb_end] if src is not None else np.zeros([mb_num] + shape[1:]) for src, shape in zip(in_arrays, self.input_shapes)]
-            mb_out = tf.get_default_session().run(out_expr, dict(zip(in_expr, mb_in)))
+            mb_out = tf.compat.v1.get_default_session().run(out_expr, dict(zip(in_expr, mb_in)))
 
             for dst, src in zip(out_arrays, mb_out):
                 dst[mb_begin: mb_end] = src
@@ -463,7 +463,7 @@ class Network:
     def list_ops(self) -> List[TfExpression]:
         include_prefix = self.scope + "/"
         exclude_prefix = include_prefix + "_"
-        ops = tf.get_default_graph().get_operations()
+        ops = tf.compat.v1.get_default_graph().get_operations()
         ops = [op for op in ops if op.name.startswith(include_prefix)]
         ops = [op for op in ops if not op.name.startswith(exclude_prefix)]
         return ops

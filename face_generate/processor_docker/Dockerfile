@@ -99,7 +99,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 RUN apt install -y python3-opencv
 
 COPY . /
-ADD requirements.txt .
+ADD processor_docker/requirements.txt .
 RUN pip3 install -r requirements.txt
 WORKDIR "/interfacegan"
 CMD ["python3", "processor.py"]
