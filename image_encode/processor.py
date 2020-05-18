@@ -62,10 +62,9 @@ from PIL import ImageFilter, Image
 from encoder.generator_model import Generator
 from encoder.perceptual_model import PerceptualModel, load_images
 import dnnlib
-import dnnlib.tflib as tflib
+import dnnlib.tflib as tfl
 import uuid
 from tqdm import tqdm
-from flask import Flask, flash, request, redirect, url_for
 import sys
 import bz2
 import boto3
@@ -136,7 +135,7 @@ def optimize_latents(file):
     os.makedirs(args['video_dir'], exist_ok=True)
 
     # Initialize generator and perceptual model
-    tflib.init_tf()
+    tfl.init_tf()
     with dnnlib.util.open_url(args['model_url'], cache_dir=args['cache_dir']) as f:
         generator_network, discriminator_network, Gs_network = pickle.load(f)
 
@@ -265,7 +264,7 @@ def run():
     )
     message = response['Messages'][0]
     handle = message['ReceiptHandle']
-    while True
+    while True:
         body = json.loads(message['Body'])
         ct = body['content-type']
         fileId = body['filename']
@@ -293,7 +292,6 @@ def run():
         with open(file_path, 'wb') as data:
             s3.download_fileobj(IMAGES_BUCKET, newFile, data)
 
-        image = Image.open(file_path)
         # image.show()
 
 
