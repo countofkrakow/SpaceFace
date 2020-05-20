@@ -127,13 +127,6 @@ def align_images(img_name, out_path):
         print("Exception in landmark detection!")
 
 def optimize_latents(file):
-    print("file: "+file)
-    os.makedirs(args['data_dir'], exist_ok=True)
-    os.makedirs(args['mask_dir'], exist_ok=True)
-    os.makedirs(args['generated_images_dir'], exist_ok=True)
-    os.makedirs(args['latent_dir'], exist_ok=True)
-    os.makedirs(args['video_dir'], exist_ok=True)
-
     # Initialize generator and perceptual model
     tfl.init_tf()
     with dnnlib.util.open_url(args['model_url'], cache_dir=args['cache_dir']) as f:
@@ -318,4 +311,10 @@ def run():
 
 if __name__ == '__main__':
     # todo process the entire queue then exit
+    os.makedirs(args['data_dir'], exist_ok=True)
+    os.makedirs(args['mask_dir'], exist_ok=True)
+    os.makedirs(args['generated_images_dir'], exist_ok=True)
+    os.makedirs(args['latent_dir'], exist_ok=True)
+    os.makedirs(args['video_dir'], exist_ok=True)
+
     run()
