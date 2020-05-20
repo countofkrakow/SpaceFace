@@ -255,6 +255,9 @@ def run():
         QueueUrl=QUEUE_URL,
         WaitTimeSeconds=10
     )
+    if not 'Messages' in response:
+        print('No messages in queue')
+        return
     message = response['Messages'][0]
     handle = message['ReceiptHandle']
     while True:
