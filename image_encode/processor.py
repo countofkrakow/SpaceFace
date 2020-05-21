@@ -245,31 +245,24 @@ def optimize_latents(file):
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-def run():
-    print("Waking from sleep")
-    s3 = boto3.client('s3')
-    sqs = boto3.client('sqs')
-
-    response = sqs.receive_message(
-        QueueUrl=QUEUE_URL,
-        WaitTimeSeconds=10
-    )
-    message = response['Messages'][0]
-    handle = message['ReceiptHandle']
-    while True:
+def get_image_batch(bs, sqs, s3):
+    img_fnames = []
+    queue_empty = False
+    for i in range(bs):
+        response = sqs.receive_message(
+            QueueUrl=QUEUE_URL,
+            WaitTimeSeconds=10
+        )
+        if 'Messages' not in response:
+            queue_empty = True
+            break
+        message = response['Messages'][0]
+        handle = message['ReceiptHandle']
         body = json.loads(message['Body'])
         ct = body['content-type']
         fileId = body['filename']
-        print(response)
-        print(handle)
-        print(fileId)
-
-        file_path = os.path.join(os.path.realpath('raw'), fileId)
+        file_path = os.path.join(os.path.realpath(RAW_IMAGES_DIR), fileId)
         image_path = f'{file_path}.png'
-
-        # io.BytesIO(image_data)
-
-        print(response)
         response = s3.get_object(Bucket=IMAGES_BUCKET, Key=fileId)
         b = response['Body'].read()
 
@@ -279,33 +272,29 @@ def run():
             lst.append(part.text)
         newFile = f'{fileId}_'
         response = s3.put_object(Body=lst[0].encode('iso-8859-1'),  Bucket=IMAGES_BUCKET,  Key=newFile)
-
+        img_fnames.append(file_path)
         # download file
         with open(file_path, 'wb') as data:
             s3.download_fileobj(IMAGES_BUCKET, newFile, data)
 
-        # image.show()
+    return img_fnames, queue_empty
+
+def run():
+    print("Waking from sleep")
+    s3 = boto3.client('s3')
+    sqs = boto3.client('sqs')
 
 
-        aligned_path = align_images(file_path, ALIGNED_IMAGES_DIR)
-        print('aligned path')
-        print(aligned_path)
-        optimize_latents(aligned_path)
-        latent_fname = f'{fileId}.npy'
-        print('poop')
-        s3.upload_file(f'latent/{latent_fname}', LATENT_BUCKET, latent_fname)
-        print('dohn')
+    queue_empty = False
+    while not queue_empty:
+        images, queue_empty = get_image_batch(BATCH_SIZE, sqs, s3)
 
-        sqs.delete_message(QueueUrl=QUEUE_URL, ReceiptHandle=handle)
-
-        response = sqs.receive_message(
-            QueueUrl=QUEUE_URL,
-            WaitTimeSeconds=10
-        )
-        if 'Messages' not in response:
-            break
-        message = response['Messages'][0]
-        handle = message['ReceiptHandle']
+        for file_path in images:
+            aligned_path = align_images(file_path, ALIGNED_IMAGES_DIR)
+            print(aligned_path)
+            optimize_latents(aligned_path)
+            s3.upload_file(f'latent/{latent_fname}', LATENT_BUCKET, latent_fname)
+            sqs.delete_message(QueueUrl=QUEUE_URL, ReceiptHandle=handle)
 
 
 if __name__ == '__main__':
