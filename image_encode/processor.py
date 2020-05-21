@@ -7,7 +7,7 @@ args = {
     'video_dir': 'video',
     'load_last': '',
     'dlatent_avg': '',
-    'model_url': 'https://drive.google.com/uc?id=1MEGjdvVpUsu1jB4zrXZN7Y4kBBOzizDQ',
+    'model_url': 'karras2019stylegan-ffhq-1024x1024.pkl',
     'model_res': 1024,
     'batch_size': 1,
     'optimizer': 'adam',
@@ -77,7 +77,6 @@ import base64
 import json
 
 LANDMARKS_MODEL_URL = 'http://dlib.net/files/shape_predictor_68_face_landmarks.dat.bz2'
-MODEL_URL = 'https://drive.google.com/uc?id=1MEGjdvVpUsu1jB4zrXZN7Y4kBBOzizDQ'
 RAW_IMAGES_DIR = 'raw'
 ALIGNED_IMAGES_DIR = 'aligned'
 LATENT_BUCKET = 'latents'
@@ -128,7 +127,7 @@ def align_images(img_name, out_path):
 def optimize_latents(file):
     # Initialize generator and perceptual model
     tfl.init_tf()
-    with dnnlib.util.open_url(args['model_url'], cache_dir=args['cache_dir']) as f:
+    with open(args['model_url'], 'rb') as f:
         generator_network, discriminator_network, Gs_network = pickle.load(f)
 
     generator = Generator(Gs_network, args['batch_size'], clipping_threshold=args['clipping_threshold'], tiled_dlatent=args['tile_dlatents'], model_res=args['model_res'], randomize_noise=args['randomize_noise'])
