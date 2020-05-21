@@ -82,7 +82,6 @@ ALIGNED_IMAGES_DIR = 'aligned'
 LATENT_BUCKET = 'latents'
 IMAGES_BUCKET = 'spaceface-images'
 QUEUE_URL = 'https://sqs.us-west-2.amazonaws.com/454494063118/encoderQ'
-BATCH_SIZE = 8
 NUM_BATCHES = 10
 
 
@@ -246,6 +245,8 @@ def allowed_file(filename):
 
 def get_image_batch(bs, sqs, s3):
     img_fnames = []
+    latent_fnames = []
+    handles = []
     queue_empty = False
     for i in range(bs):
         response = sqs.receive_message(
@@ -271,12 +272,15 @@ def get_image_batch(bs, sqs, s3):
             lst.append(part.text)
         newFile = f'{fileId}_'
         response = s3.put_object(Body=lst[0].encode('iso-8859-1'),  Bucket=IMAGES_BUCKET,  Key=newFile)
+        latent_fname = f'{fileId}.npy'
+        latent_fnames.append(latent_fname)
         img_fnames.append(file_path)
+        handles.append(handle)
         # download file
         with open(file_path, 'wb') as data:
             s3.download_fileobj(IMAGES_BUCKET, newFile, data)
 
-    return img_fnames, queue_empty
+    return img_fnames, handles, latent_fnames, queue_empty
 
 def run():
     print("Waking from sleep")
@@ -286,12 +290,13 @@ def run():
 
     queue_empty = False
     while not queue_empty:
-        images, queue_empty = get_image_batch(BATCH_SIZE, sqs, s3)
+        images, handles, latents, queue_empty = get_image_batch(args['batch_size'], sqs, s3)
 
-        for file_path in images:
+        for file_path, latent_fname, handle in zip(images, latents, handles):
             aligned_path = align_images(file_path, ALIGNED_IMAGES_DIR)
             print(aligned_path)
             optimize_latents(aligned_path)
+
             s3.upload_file(f'latent/{latent_fname}', LATENT_BUCKET, latent_fname)
             sqs.delete_message(QueueUrl=QUEUE_URL, ReceiptHandle=handle)
 

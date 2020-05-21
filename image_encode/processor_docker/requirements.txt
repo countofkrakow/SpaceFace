@@ -4,6 +4,7 @@ tqdm
 pillow
 scikit-learn
 numpy==1.18
+imutils
 bz2file
 requests
 keras
