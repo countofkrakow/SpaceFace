@@ -43,7 +43,6 @@ args = {
     'scale_mask': 1.4,
     'composite_mask': True,
     'composite_blur': 8,
-    'video_dir': 'video',
     'output_video': False,
     'video_codec': 'MJPG',
     'video_frame_rate': 24,
@@ -310,11 +309,4 @@ def run():
 
 
 if __name__ == '__main__':
-    # todo process the entire queue then exit
-    os.makedirs(args['data_dir'], exist_ok=True)
-    os.makedirs(args['mask_dir'], exist_ok=True)
-    os.makedirs(args['generated_images_dir'], exist_ok=True)
-    os.makedirs(args['latent_dir'], exist_ok=True)
-    os.makedirs(args['video_dir'], exist_ok=True)
-
     run()
