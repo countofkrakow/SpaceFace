@@ -3,7 +3,7 @@ boto3
 tqdm
 pillow
 scikit-learn
-tensorflow-gpu==1.14
+tensorflow-gpu==1.15.2
 flask
 numpy==1.18
 opencv-python
