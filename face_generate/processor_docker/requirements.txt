@@ -4,7 +4,6 @@ numpy
 tqdm
 pillow
 scikit-learn
-tensorflow-gpu==1.12
-torchvision
+tensorflow-gpu==1.12.2
 urllib3
 werkzeug

@@ -1,33 +1,21 @@
-FROM tensorflow/tensorflow:1.12.3-gpu-py3
+FROM nvidia/cuda:9.2-base-ubuntu16.04
 
-# Install python 3.6
-RUN add-apt-repository ppa:deadsnakes/ppa
-RUN apt-get update
-RUN apt-get install python3.6 python3.6-dev -y
-RUN apt-get update
-RUN apt-get install -y build-essential apt-utils
-RUN ln -s $(which python3.6) /usr/local/bin/python
-RUN python3 -m pip --no-cache-dir install --upgrade \
-    pip \
-    setuptools
+RUN apt-get update && \
+        apt-get install -y software-properties-common && \
+        add-apt-repository ppa:deadsnakes/ppa && \
+        apt-get update -y  && \
+        apt-get install -y build-essential python3.6 python3.6-dev python3-pip && \
+        apt-get install -y git  && \
+        # update pip
+        python3.6 -m pip install pip --upgrade && \
+        python3.6 -m pip install wheel
 
-# install cv2
-RUN apt-get update
-RUN apt-get -y upgrade
-RUN apt-get install build-essential
-RUN apt-get install cmake git libgtk2.0-dev pkg-config libavcodec-dev libavformat-dev libswscale-dev
-RUN apt-get install python-dev python-numpy libtbb2 libtbb-dev libjpeg-dev libpng-dev libtiff-dev libjasper-dev libdc1394-22-dev
-RUN apt-get install libavcodec-dev libavformat-dev libswscale-dev libv4l-dev
-RUN apt-get install libxvidcore-dev libx264-dev
-RUN apt-get install libgtk-3-dev
-RUN apt-get install libatlas-base-dev gfortran pylint
-RUN apt-get install python3.6-dev
+RUN apt-get install -y libsm6 libxext6 libxrender-dev
 
+RUN pip3 install torch==1.5.0+cu92 torchvision==0.6.0+cu92 -f https://download.pytorch.org/whl/torch_stable.html
 COPY . /app
 WORKDIR /app
-
 RUN pip3 install -r processor_docker/requirements.txt
-
 WORKDIR interfacegan
 
 CMD ["python3.6", "processor.py"]
