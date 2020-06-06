@@ -50,15 +50,15 @@ def fetch_args():
     result_id = os.environ['RESULT_ID']
     return {
         'type': b_type,
-        'min': min,
-        'max': max,
-        'stps': steps,
+        'min': int(min),
+        'max': int(max),
+        'steps': int(steps),
         'id': id,
         'result_id': result_id
     }
 
 def edit_image(args):
-    b = content['type']
+    b = args['type']
 
     if b not in boundaries:
         return "Invalid boundary"
@@ -95,9 +95,9 @@ def edit_image(args):
         for i, sample_id in enumerate(tqdm(range(total_num), leave=False)):
             interpolations = linear_interpolate(latent_codes[sample_id:sample_id + 1],
                                               boundary,
-                                              start_distance=content['min'],
-                                              end_distance=content['max'],
-                                              steps=content['steps'])
+                                              start_distance=args['min'],
+                                              end_distance=args['max'],
+                                              steps=args['steps'])
             interpolation_id = 0
             for interpolations_batch in model.get_batch_inputs(interpolations):
                 outputs = model.easy_synthesize(interpolations_batch, **kwargs)
@@ -112,7 +112,7 @@ def edit_image(args):
                     interpolation_id += 1
 
     memory_file.seek(0)
-    assert interpolation_id == content['steps']
+    assert interpolation_id == args['steps']
     logger.debug(f'  Finished sample {sample_id:3d}.')
     logger.info(f'Successfully edited {total_num} samples.')
     # send file object to s3
