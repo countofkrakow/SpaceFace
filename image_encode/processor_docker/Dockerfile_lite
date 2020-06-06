@@ -14,6 +14,6 @@ RUN pip3 install -r requirements.txt
 
 COPY . .
 USER root
-RUN mkdir /raw /aligned /data /mask /generated /latent
+RUN mkdir -p /raw /aligned /data /mask /generated /latent
 
 CMD ["python", "processor.py"]

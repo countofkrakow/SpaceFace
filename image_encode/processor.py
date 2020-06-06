@@ -7,7 +7,7 @@ args = {
     'video_dir': 'video',
     'load_last': '',
     'dlatent_avg': '',
-    'model_url': 'karras2019stylegan-ffhq-1024x1024.pkl',
+    'model_dir': 'cache/karras2019stylegan-ffhq-1024x1024.pkl',
     'model_res': 1024,
     'batch_size': 1,
     'optimizer': 'adam',
@@ -76,7 +76,7 @@ from requests_toolbelt.multipart import decoder
 import base64
 import json
 
-LANDMARKS_MODEL_URL = 'http://dlib.net/files/shape_predictor_68_face_landmarks.dat.bz2'
+LANDMARKS_MODEL_URL = 'https://build-artifacts-1.s3-us-west-2.amazonaws.com/shape_predictor_68_face_landmarks.dat.bz2'
 RAW_IMAGES_DIR = 'raw'
 ALIGNED_IMAGES_DIR = 'aligned'
 LATENT_BUCKET = 'latents'
@@ -93,40 +93,39 @@ def unpack_bz2(src_path):
     return dst_path
 
 def align_images(img_name, out_path):
-    landmarks_model_path = unpack_bz2(get_file('shape_predictor_68_face_landmarks.dat.bz2', LANDMARKS_MODEL_URL, cache_subdir=args['cache_dir']))
+    landmarks_model_path = unpack_bz2(get_file('shape_predictor_68_face_landmarks.dat.bz2', LANDMARKS_MODEL_URL, cache_subdir='cache'))
     landmarks_detector = LandmarksDetector(landmarks_model_path)
     print('Aligning %s ...' % img_name)
     try:
+        aligned_face_path = None
         print('Getting landmarks...')
-        relative_path = os.path.realpath(img_name)
-        print("relative path: " + relative_path)
-        landmarks = [i for i in landmarks_detector.get_landmarks(relative_path)]
-        print(landmarks)
-        for i, face_landmarks in enumerate(landmarks_detector.get_landmarks(img_name), start=1):
+        raw_img_path = os.path.join(RAW_IMAGES_DIR, img_name)
+        fn = face_img_name = '%s_%02d.png' % (os.path.splitext(img_name)[0], 1)
+        if os.path.isfile(fn):
+            return None
+        print(f'raw_img_path: {raw_img_path}')
+        for i, face_landmarks in enumerate(landmarks_detector.get_landmarks(raw_img_path), start=1):
             print("me")
             try:
-                print('Starting face alignment...')
-                print("the: ")
-                print(face_landmarks)
-                print(img_name)
-                file_name = os.path.basename(img_name)
-                out_path = os.path.realpath(out_path)
-                aligned_face_path = os.path.join(out_path, file_name)
-                print(file_name)
-                print("juice")
-                print(aligned_face_path)
-                image_align(img_name, aligned_face_path, face_landmarks, output_size=args['model_res'], x_scale=1, y_scale=1, em_scale=0.1, alpha=False)
+                face_img_name = '%s_%02d.png' % (os.path.splitext(img_name)[0], i)
+                aligned_face_path = os.path.join(ALIGNED_IMAGES_DIR, face_img_name)
+                image_align(raw_img_path, aligned_face_path, face_landmarks, output_size=args['model_res'], x_scale=1, y_scale=1, em_scale=0.1, alpha=False)
                 print('Wrote result %s' % aligned_face_path)
             except:
                 print("Exception in face alignment!")
+        print(f'out_path: {os.listdir(out_path)}')
         return aligned_face_path
-    except:
+    except Exception as inst:
+        print(type(inst))    # the exception instance
+        print(inst.args)     # arguments stored in .args
+        print(inst)
+        print(os.listdir(out_path))
         print("Exception in landmark detection!")
 
 def optimize_latents(file):
     # Initialize generator and perceptual model
     tfl.init_tf()
-    with open(args['model_url'], 'rb') as f:
+    with open(args['model_dir'], 'rb') as f:
         generator_network, discriminator_network, Gs_network = pickle.load(f)
 
     generator = Generator(Gs_network, args['batch_size'], clipping_threshold=args['clipping_threshold'], tiled_dlatent=args['tile_dlatents'], model_res=args['model_res'], randomize_noise=args['randomize_noise'])
@@ -259,26 +258,17 @@ def get_image_batch(bs, sqs, s3):
         message = response['Messages'][0]
         handle = message['ReceiptHandle']
         body = json.loads(message['Body'])
-        ct = body['content-type']
         fileId = body['filename']
-        file_path = os.path.join(os.path.realpath(RAW_IMAGES_DIR), fileId)
-        image_path = f'{file_path}.png'
-        response = s3.get_object(Bucket=IMAGES_BUCKET, Key=fileId)
-        b = response['Body'].read()
+        file_path = os.path.join(RAW_IMAGES_DIR, fileId)
+        print(f'file path: {file_path}')
 
-        imgInput = ''
-        lst = []
-        for part in decoder.MultipartDecoder(b, ct).parts:
-            lst.append(part.text)
-        newFile = f'{fileId}_'
-        response = s3.put_object(Body=lst[0].encode('iso-8859-1'),  Bucket=IMAGES_BUCKET,  Key=newFile)
+        # download image itself
+        s3.download_file(IMAGES_BUCKET, fileId, file_path)
+        print(os.listdir(RAW_IMAGES_DIR))
         latent_fname = f'{fileId}.npy'
         latent_fnames.append(latent_fname)
         img_fnames.append(file_path)
         handles.append(handle)
-        # download file
-        with open(file_path, 'wb') as data:
-            s3.download_fileobj(IMAGES_BUCKET, newFile, data)
 
     return img_fnames, handles, latent_fnames, queue_empty
 
@@ -293,10 +283,11 @@ def run():
         images, handles, latents, queue_empty = get_image_batch(args['batch_size'], sqs, s3)
 
         for file_path, latent_fname, handle in zip(images, latents, handles):
-            aligned_path = align_images(file_path, ALIGNED_IMAGES_DIR)
-            print(aligned_path)
+            head, tail = os.path.split(file_path)
+            fname = tail.split('/')[-1]
+            print(f'fname: {fname}')
+            aligned_path = align_images(fname, ALIGNED_IMAGES_DIR)
             optimize_latents(aligned_path)
-
             s3.upload_file(f'latent/{latent_fname}', LATENT_BUCKET, latent_fname)
             sqs.delete_message(QueueUrl=QUEUE_URL, ReceiptHandle=handle)
 
