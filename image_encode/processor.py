@@ -9,7 +9,7 @@ args = {
     'dlatent_avg': '',
     'model_dir': 'cache/karras2019stylegan-ffhq-1024x1024.pkl',
     'model_res': 1024,
-    'batch_size': 1,
+    'batch_size': 6,
     'optimizer': 'adam',
     'image_size': 256,
     'resnet_image_size': 256,
@@ -103,7 +103,11 @@ def align_images(img_name):
         if os.path.isfile(fn):
             return None
         print(f'raw_img_path: {raw_img_path}')
-        for i, face_landmarks in enumerate(landmarks_detector.get_landmarks(raw_img_path), start=1):
+        landmarks = list(landmarks_detector.get_landmarks(raw_img_path))
+        if len(landmarks) == 0:
+            print("No landmarks detected..... \nExiting.....")
+            return None
+        for i, face_landmarks in enumerate(landmarks, start=1):
             print("me")
             try:
                 face_img_name = '%s_%02d.png' % (os.path.splitext(img_name)[0], i)
@@ -121,7 +125,7 @@ def align_images(img_name):
         print(inst)
         print("Exception in landmark detection!")
 
-def optimize_latents(file, latent_path):
+def optimize_latents(images_batch, latent_paths):
     # Initialize generator and perceptual model
     tfl.init_tf()
     with open(args['model_dir'], 'rb') as f:
@@ -134,36 +138,29 @@ def optimize_latents(file, latent_path):
 
     ff_model = None
 
-    name = os.path.basename(file)
     if args['output_video']:
-        video_out = cv2.VideoWriter(os.path.join(args['video_dir'], f'{name}.avi'),cv2.VideoWriter_fourcc(*args['video_codec']), args['video_frame_rate'], (args['video_size'],args['video_size']))
+        pass
+        # TODO add video
+        # video_out = cv2.VideoWriter(os.path.join(args['video_dir'], f'{name}.avi'),cv2.VideoWriter_fourcc(*args['video_codec']), args['video_frame_rate'], (args['video_size'],args['video_size']))
 
-    images_batch = [file]
-    print(f'file: {file}')
     names = [os.path.splitext(os.path.basename(x))[0] for x in images_batch]
-    print(f'names: {names}')
     print(images_batch)
     perceptual_model.set_reference_images(images_batch)
 
     dlatents = None
-    if (args['load_last'] != ''): # load previous dlatents for initialization
-        dl = np.expand_dims(np.load(os.path.join(args['load_last'], f'{name}.npy')),axis=0)
-        if (dlatents is None):
-            dlatents = dl
-        else:
-            dlatents = np.vstack((dlatents,dl))
-    else:
-        if (ff_model is None):
-            if os.path.exists(args['load_resnet']):
-                from keras.applications.resnet50 import preprocess_input
-                print("Loading ResNet Model:")
-                ff_model = load_model(args['load_resnet'])
 
-        if (ff_model is not None): # predict initial dlatents with ResNet model
-            if (args['use_preprocess_input']):
-                dlatents = ff_model.predict(preprocess_input(load_images(images_batch,image_size=args['resnet_image_size'])))
-            else:
-                dlatents = ff_model.predict(load_images(images_batch,image_size=args['resnet_image_size']))
+    # todo initialize once per run
+    if (ff_model is None):
+        if os.path.exists(args['load_resnet']):
+            from keras.applications.resnet50 import preprocess_input
+            print("Loading ResNet Model:")
+            ff_model = load_model(args['load_resnet'])
+
+    if (ff_model is not None): # predict initial dlatents with ResNet model
+        if (args['use_preprocess_input']):
+            dlatents = ff_model.predict(preprocess_input(load_images(images_batch,image_size=args['resnet_image_size'])))
+        else:
+            dlatents = ff_model.predict(load_images(images_batch,image_size=args['resnet_image_size']))
     if dlatents is not None:
         generator.set_dlatents(dlatents)
     op = perceptual_model.optimize(generator.dlatent_variable, iterations=args['iterations'], use_optimizer=args['optimizer'])
@@ -197,19 +194,11 @@ def optimize_latents(file, latent_path):
             if args['use_best_loss']:
                 generator.set_dlatents(best_dlatent)
             best_loss = loss_dict["loss"]
-        if args['output_video'] and (vid_count % args['video_skip'] == 0):
-          batch_frames = generator.generate_images()
-          for i, name in enumerate(names):
-            video_frame = Image.fromarray(batch_frames[i], 'RGB').resize((args['video_size'],args['video_size']),Image.LANCZOS)
-            video_out.write(cv2.cvtColor(np.array(video_frame).astype('uint8'), cv2.COLOR_RGB2BGR))
         generator.stochastic_clip_dlatents()
         prev_loss = loss_dict["loss"]
     if not args['use_best_loss']:
         best_loss = prev_loss
     print(" ".join(names), " Loss {:.4f}".format(best_loss))
-
-    if args['output_video']:
-        video_out.release()
 
     # Generate images from found dlatents and save them
     if args['use_best_loss']:
@@ -217,7 +206,7 @@ def optimize_latents(file, latent_path):
     generated_images = generator.generate_images()
     generated_dlatents = generator.get_dlatents()
 
-    for img_array, dlatent, img_path, img_name in zip(generated_images, generated_dlatents, images_batch, names):
+    for img_array, dlatent, img_path, img_name, latent_path in zip(generated_images, generated_dlatents, images_batch, names, latent_paths):
         mask_img = None
         if args['composite_mask'] and (args['load_mask'] or args['face_mask']):
             _, im_name = os.path.split(img_path)
@@ -234,9 +223,9 @@ def optimize_latents(file, latent_path):
             print(orig_img)
             img_array = mask*np.array(img_array) + (1.0-mask)*np.array(orig_img)
             img_array = img_array.astype(np.uint8)
-            #img_array = np.where(mask, np.array(img_array), orig_img)
+            img_array = np.where(mask, np.array(img_array), orig_img)
         img = Image.fromarray(img_array, 'RGB')
-        img.save(os.path.join(args['generated_images_dir'], f'{img_name}.png'), 'PNG')
+        # img.save(os.path.join(args['generated_images_dir'], f'{img_name}.png'), 'PNG')
         np.save(latent_path, dlatent)
     generator.reset_dlatents()
 
@@ -273,30 +262,44 @@ def get_image_batch(bs, sqs, s3):
 
     return img_fnames, handles, latent_fnames, queue_empty
 
+# TODO redo as batch
 def run():
     print("Waking from sleep")
     s3 = boto3.client('s3')
     sqs = boto3.client('sqs')
 
-
+    images, handles, latents, queue_empty = get_image_batch(args['batch_size'], sqs, s3)
     queue_empty = False
     while not queue_empty:
-        images, handles, latents, queue_empty = get_image_batch(args['batch_size'], sqs, s3)
 
+        aligned_batch = []
+        latent_batch = []
+        latent_fnames = []
+        latent_handles = []
         for file_path, latent_fname, handle in zip(images, latents, handles):
             print(f'latent_fname: {latent_fname}')
             head, tail = os.path.split(file_path)
             fname = tail.split('/')[-1]
             print(f'fname: {fname}')
             aligned_path = align_images(fname)
-            latent_path = os.path.join(args['latent_dir'], latent_fname)
-            optimize_latents(aligned_path, latent_path)
-            print(f'latent_fname: {latent_fname}')
-            print(f'aligned_path: {aligned_path}')
-            print(os.listdir(args['latent_dir']))
-            s3.upload_file(latent_path, LATENT_BUCKET, latent_fname)
-            sqs.delete_message(QueueUrl=QUEUE_URL, ReceiptHandle=handle)
+            if aligned_path is None:
+                print("Deleting Faulty message from queue")
+                sqs.delete_message(QueueUrl=QUEUE_URL, ReceiptHandle=handle)
+                continue
 
+            latent_path = os.path.join(args['latent_dir'], latent_fname)
+            latent_fnames.append(latent_fname)
+            aligned_batch.append(aligned_path)
+            latent_batch.append(latent_path)
+            latent_handles.append(handle)
+
+        if len(aligned_batch) > 0:
+            optimize_latents(aligned_batch, latent_batch)
+            for latent_path, latent_fname, handle in zip(latent_batch, latent_fnames, latent_handles):
+                s3.upload_file(latent_path, LATENT_BUCKET, latent_fname)
+                sqs.delete_message(QueueUrl=QUEUE_URL, ReceiptHandle=handle)
+
+        images, handles, latents, queue_empty = get_image_batch(args['batch_size'], sqs, s3)
 
 if __name__ == '__main__':
     run()
