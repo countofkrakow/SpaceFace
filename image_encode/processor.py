@@ -56,7 +56,6 @@ import pickle
 import numpy as np
 import cv2
 import tensorflow as tf
-import PIL.Image
 from PIL import ImageFilter, Image
 from encoder.generator_model import Generator
 from encoder.perceptual_model import PerceptualModel, load_images
@@ -92,7 +91,7 @@ def unpack_bz2(src_path):
         fp.write(data)
     return dst_path
 
-def align_images(img_name, out_path):
+def align_images(img_name):
     landmarks_model_path = unpack_bz2(get_file('shape_predictor_68_face_landmarks.dat.bz2', LANDMARKS_MODEL_URL, cache_subdir='cache'))
     landmarks_detector = LandmarksDetector(landmarks_model_path)
     print('Aligning %s ...' % img_name)
@@ -113,16 +112,16 @@ def align_images(img_name, out_path):
                 print('Wrote result %s' % aligned_face_path)
             except:
                 print("Exception in face alignment!")
-        print(f'out_path: {os.listdir(out_path)}')
+        print(f'aligned_face_path: {os.listdir(ALIGNED_IMAGES_DIR)}')
+        print(f'raw_face_path: {os.listdir(RAW_IMAGES_DIR)}')
         return aligned_face_path
     except Exception as inst:
         print(type(inst))    # the exception instance
         print(inst.args)     # arguments stored in .args
         print(inst)
-        print(os.listdir(out_path))
         print("Exception in landmark detection!")
 
-def optimize_latents(file):
+def optimize_latents(file, latent_path):
     # Initialize generator and perceptual model
     tfl.init_tf()
     with open(args['model_dir'], 'rb') as f:
@@ -140,7 +139,9 @@ def optimize_latents(file):
         video_out = cv2.VideoWriter(os.path.join(args['video_dir'], f'{name}.avi'),cv2.VideoWriter_fourcc(*args['video_codec']), args['video_frame_rate'], (args['video_size'],args['video_size']))
 
     images_batch = [file]
+    print(f'file: {file}')
     names = [os.path.splitext(os.path.basename(x))[0] for x in images_batch]
+    print(f'names: {names}')
     print(images_batch)
     perceptual_model.set_reference_images(images_batch)
 
@@ -199,7 +200,7 @@ def optimize_latents(file):
         if args['output_video'] and (vid_count % args['video_skip'] == 0):
           batch_frames = generator.generate_images()
           for i, name in enumerate(names):
-            video_frame = PIL.Image.fromarray(batch_frames[i], 'RGB').resize((args['video_size'],args['video_size']),PIL.Image.LANCZOS)
+            video_frame = Image.fromarray(batch_frames[i], 'RGB').resize((args['video_size'],args['video_size']),Image.LANCZOS)
             video_out.write(cv2.cvtColor(np.array(video_frame).astype('uint8'), cv2.COLOR_RGB2BGR))
         generator.stochastic_clip_dlatents()
         prev_loss = loss_dict["loss"]
@@ -222,9 +223,9 @@ def optimize_latents(file):
             _, im_name = os.path.split(img_path)
             mask_img = os.path.join(args['mask_dir'], f'{im_name}')
         if args['composite_mask'] and mask_img is not None and os.path.isfile(mask_img):
-            orig_img = PIL.Image.open(img_path).convert('RGB')
+            orig_img = Image.open(img_path).convert('RGB')
             width, height = orig_img.size
-            imask = PIL.Image.open(mask_img).convert('L').resize((width, height))
+            imask = Image.open(mask_img).convert('L').resize((width, height))
             imask = imask.filter(ImageFilter.GaussianBlur(args['composite_blur']))
             mask = np.array(imask)/255
             mask = np.expand_dims(mask,axis=-1)
@@ -234,9 +235,9 @@ def optimize_latents(file):
             img_array = mask*np.array(img_array) + (1.0-mask)*np.array(orig_img)
             img_array = img_array.astype(np.uint8)
             #img_array = np.where(mask, np.array(img_array), orig_img)
-        img = PIL.Image.fromarray(img_array, 'RGB')
+        img = Image.fromarray(img_array, 'RGB')
         img.save(os.path.join(args['generated_images_dir'], f'{img_name}.png'), 'PNG')
-        np.save(os.path.join(args['latent_dir'], f'{img_name}.npy'), dlatent)
+        np.save(latent_path, dlatent)
     generator.reset_dlatents()
 
 def allowed_file(filename):
@@ -264,8 +265,8 @@ def get_image_batch(bs, sqs, s3):
 
         # download image itself
         s3.download_file(IMAGES_BUCKET, fileId, file_path)
-        print(os.listdir(RAW_IMAGES_DIR))
-        latent_fname = f'{fileId}.npy'
+        img = Image.open(file_path)
+        latent_fname = f'{os.path.splitext(fileId)[0]}.npy'
         latent_fnames.append(latent_fname)
         img_fnames.append(file_path)
         handles.append(handle)
@@ -283,12 +284,17 @@ def run():
         images, handles, latents, queue_empty = get_image_batch(args['batch_size'], sqs, s3)
 
         for file_path, latent_fname, handle in zip(images, latents, handles):
+            print(f'latent_fname: {latent_fname}')
             head, tail = os.path.split(file_path)
             fname = tail.split('/')[-1]
             print(f'fname: {fname}')
-            aligned_path = align_images(fname, ALIGNED_IMAGES_DIR)
-            optimize_latents(aligned_path)
-            s3.upload_file(f'latent/{latent_fname}', LATENT_BUCKET, latent_fname)
+            aligned_path = align_images(fname)
+            latent_path = os.path.join(args['latent_dir'], latent_fname)
+            optimize_latents(aligned_path, latent_path)
+            print(f'latent_fname: {latent_fname}')
+            print(f'aligned_path: {aligned_path}')
+            print(os.listdir(args['latent_dir']))
+            s3.upload_file(latent_path, LATENT_BUCKET, latent_fname)
             sqs.delete_message(QueueUrl=QUEUE_URL, ReceiptHandle=handle)
 
 
