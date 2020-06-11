@@ -73,6 +73,7 @@ from ffhq_dataset.landmarks_detector import LandmarksDetector
 from io import BytesIO
 from requests_toolbelt.multipart import decoder
 import base64
+from keras.applications.resnet50 import preprocess_input
 import json
 
 LANDMARKS_MODEL_URL = 'https://build-artifacts-1.s3-us-west-2.amazonaws.com/shape_predictor_68_face_landmarks.dat.bz2'
@@ -91,9 +92,7 @@ def unpack_bz2(src_path):
         fp.write(data)
     return dst_path
 
-def align_images(img_name):
-    landmarks_model_path = unpack_bz2(get_file('shape_predictor_68_face_landmarks.dat.bz2', LANDMARKS_MODEL_URL, cache_subdir='cache'))
-    landmarks_detector = LandmarksDetector(landmarks_model_path)
+def align_images(img_name, landmarks_detector):
     print('Aligning %s ...' % img_name)
     try:
         aligned_face_path = None
@@ -125,19 +124,7 @@ def align_images(img_name):
         print(inst)
         print("Exception in landmark detection!")
 
-def optimize_latents(images_batch, latent_paths):
-    # Initialize generator and perceptual model
-    tfl.init_tf()
-    with open(args['model_dir'], 'rb') as f:
-        generator_network, discriminator_network, Gs_network = pickle.load(f)
-
-    generator = Generator(Gs_network, args['batch_size'], clipping_threshold=args['clipping_threshold'], tiled_dlatent=args['tile_dlatents'], model_res=args['model_res'], randomize_noise=args['randomize_noise'])
-
-    perceptual_model = PerceptualModel(args, perc_model=None, batch_size=args['batch_size'])
-    perceptual_model.build_perceptual_model(generator, discriminator_network)
-
-    ff_model = None
-
+def optimize_latents(images_batch, latent_paths, ff_model, generator, perceptual_model):
     if args['output_video']:
         pass
         # TODO add video
@@ -148,13 +135,6 @@ def optimize_latents(images_batch, latent_paths):
     perceptual_model.set_reference_images(images_batch)
 
     dlatents = None
-
-    # todo initialize once per run
-    if (ff_model is None):
-        if os.path.exists(args['load_resnet']):
-            from keras.applications.resnet50 import preprocess_input
-            print("Loading ResNet Model:")
-            ff_model = load_model(args['load_resnet'])
 
     if (ff_model is not None): # predict initial dlatents with ResNet model
         if (args['use_preprocess_input']):
@@ -262,13 +242,37 @@ def get_image_batch(bs, sqs, s3):
 
     return img_fnames, handles, latent_fnames, queue_empty
 
-# TODO redo as batch
+def init_dependencies():
+    tfl.init_tf()
+    landmarks_model_path = unpack_bz2(get_file('shape_predictor_68_face_landmarks.dat.bz2', LANDMARKS_MODEL_URL, cache_subdir='cache'))
+    landmarks_detector = LandmarksDetector(landmarks_model_path)
+    if os.path.exists(args['load_resnet']):
+        print("Loading ResNet Model:")
+        ff_model = load_model(args['load_resnet'])
+
+
+    with open(args['model_dir'], 'rb') as f:
+        generator_network, discriminator_network, Gs_network = pickle.load(f)
+
+    generator = Generator(Gs_network, args['batch_size'], clipping_threshold=args['clipping_threshold'], tiled_dlatent=args['tile_dlatents'], model_res=args['model_res'], randomize_noise=args['randomize_noise'])
+
+    perceptual_model = PerceptualModel(args, perc_model=None, batch_size=args['batch_size'])
+    perceptual_model.build_perceptual_model(generator, discriminator_network)
+    return landmarks_detector, ff_model, generator, perceptual_model
+
 def run():
     print("Waking from sleep")
+
     s3 = boto3.client('s3')
     sqs = boto3.client('sqs')
 
-    images, handles, latents, queue_empty = get_image_batch(args['batch_size'], sqs, s3)
+    images, handles, latents, _ = get_image_batch(args['batch_size'], sqs, s3)
+
+    if len(images) == 0:
+        print("No requests found in queue...\nExiting...")
+        quit()
+
+    landmarks_detector, ff_model, generator, perceptual_model = init_dependencies()
     queue_empty = False
     while not queue_empty:
 
@@ -281,7 +285,7 @@ def run():
             head, tail = os.path.split(file_path)
             fname = tail.split('/')[-1]
             print(f'fname: {fname}')
-            aligned_path = align_images(fname)
+            aligned_path = align_images(fname, landmarks_detector)
             if aligned_path is None:
                 print("Deleting Faulty message from queue")
                 sqs.delete_message(QueueUrl=QUEUE_URL, ReceiptHandle=handle)
@@ -294,7 +298,8 @@ def run():
             latent_handles.append(handle)
 
         if len(aligned_batch) > 0:
-            optimize_latents(aligned_batch, latent_batch)
+            # images_batch, latent_paths, ff_model, generator, perceptual_model
+            optimize_latents(aligned_batch, latent_batch, ff_model, generator, perceptual_model)
             for latent_path, latent_fname, handle in zip(latent_batch, latent_fnames, latent_handles):
                 s3.upload_file(latent_path, LATENT_BUCKET, latent_fname)
                 sqs.delete_message(QueueUrl=QUEUE_URL, ReceiptHandle=handle)
