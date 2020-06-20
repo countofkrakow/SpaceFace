@@ -300,9 +300,11 @@ def run():
         if len(aligned_batch) > 0:
             # images_batch, latent_paths, ff_model, generator, perceptual_model
             optimize_latents(aligned_batch, latent_batch, ff_model, generator, perceptual_model)
-            for latent_path, latent_fname, handle in zip(latent_batch, latent_fnames, latent_handles):
+            for latent_path, latent_fname in zip(latent_batch, latent_fnames):
                 s3.upload_file(latent_path, LATENT_BUCKET, latent_fname)
-                sqs.delete_message(QueueUrl=QUEUE_URL, ReceiptHandle=handle)
+
+        for h in handles:
+            sqs.delete_message(QueueUrl=QUEUE_URL, ReceiptHandle=h)
 
         images, handles, latents, queue_empty = get_image_batch(args['batch_size'], sqs, s3)
 
