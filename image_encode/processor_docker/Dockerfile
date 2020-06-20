@@ -15,6 +15,6 @@ RUN mv -t cache karras2019stylegan-ffhq-1024x1024.pkl shape_predictor_68_face_la
 
 COPY . .
 USER root
-
+RUN mkdir -p /raw /aligned /data /mask /generated /latent
 
 CMD ["python", "processor.py"]
