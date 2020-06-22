@@ -1,6 +1,4 @@
 image_encode/processor_docker/env.list
-*.png
 face_attribute_training*
-*gif
 *css
 *pyc
