@@ -3,10 +3,10 @@ import * as React from 'react';
 
 import TabBarIcon from '../components/TabBarIcon';
 import UploadScreen from '../screens/UploadScreen';
-import MyPhotosScreen from '../screens/MyPhotosScreen';
+import MyPhotosContainer from '../screens/MyPhotosContainer';
 
 const BottomTab = createBottomTabNavigator();
-const INITIAL_ROUTE_NAME = 'Upload';
+const INITIAL_ROUTE_NAME = 'MyPhotos';
 
 export default function BottomTabNavigator({ navigation, route }) {
   // Set the header title on the parent stack navigator depending on the
@@ -26,7 +26,7 @@ export default function BottomTabNavigator({ navigation, route }) {
       />
       <BottomTab.Screen
         name="MyPhotos"
-        component={MyPhotosScreen}
+        component={MyPhotosContainer}
         options={{
           title: 'My Photos',
           tabBarIcon: ({ focused }) => <TabBarIcon focused={focused} name="md-contacts" />,

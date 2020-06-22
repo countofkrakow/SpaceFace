@@ -1,12 +1,12 @@
-import * as WebBrowser from 'expo-web-browser';
 import * as React from 'react';
-import { Image, Platform, StyleSheet, Text, TouchableOpacity, View, Button } from 'react-native';
+import { Image, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
 import * as ImagePicker from 'expo-image-picker';
 
 import { MonoText } from '../components/StyledText';
-import { LoadingImage } from '../components/LoadingImage';
+import { LoadingImage, LoadingScreen } from '../components/Loading';
 import Colors from '../constants/Colors';
+import StyledButton from './../components/StyledButton';
 
 export default class UploadScreen extends React.Component {
   constructor(props) {
@@ -22,7 +22,20 @@ export default class UploadScreen extends React.Component {
         //     'https://www.biography.com/.image/ar_1:1%2Cc_fill%2Ccs_srgb%2Cg_face%2Cq_auto:good%2Cw_300/MTcyMzE0MzI2NTU0NjQ5ODEy/ang-lee-gettyimages-163118045.jpg',
         // },
       ],
+      loading: true,
     };
+  }
+
+  async getPendingUploads() {
+    return [];
+  }
+
+  async componentDidMount() {
+    const pendingUploads = await this.getPendingUploads();
+    this.setState({
+      loading: false,
+      pendingUploads,
+    });
   }
 
   renderNoImage() {
@@ -43,9 +56,7 @@ export default class UploadScreen extends React.Component {
               />
             </View>
           </View>
-          <View style={styles.buttonContainer}>
-            <Button title="Choose Image" onPress={this.chooseImageButtonPress.bind(this)} />
-          </View>
+          <StyledButton text="Choose Image" onPress={this.chooseImageButtonPress.bind(this)} />
         </ScrollView>
       </View>
     );
@@ -60,12 +71,8 @@ export default class UploadScreen extends React.Component {
               <Image source={{ uri: this.state.selectedImage }} style={styles.sampleUploadImage} />
             </View>
           </View>
-          <View style={styles.buttonContainer}>
-            <Button title="Upload" onPress={this.uploadButtonPress.bind(this)} />
-          </View>
-          <View style={styles.buttonContainer}>
-            <Button title="Cancel" onPress={this.cancelUploadButtonPress.bind(this)} />
-          </View>
+          <StyledButton text="Upload" onPress={this.uploadButtonPress.bind(this)} />
+          <StyledButton text="Cancel" onPress={this.cancelUploadButtonPress.bind(this)} />
         </ScrollView>
       </View>
     );
@@ -78,15 +85,16 @@ export default class UploadScreen extends React.Component {
           {this.state.pendingUploads.map((pendingUpload, i) => (
             <PendingUpload key={i} pendingUpload={pendingUpload} />
           ))}
-          <View style={styles.buttonContainer}>
-            <Button title="Add" onPress={this.chooseImageButtonPress.bind(this)} />
-          </View>
+          <StyledButton text="Add" onPress={this.chooseImageButtonPress.bind(this)} />
         </ScrollView>
       </View>
     );
   }
 
   render() {
+    if (this.state.loading) {
+      return <LoadingScreen />;
+    }
     if (this.state.selectedImage) {
       return this.renderWithImage();
     }
@@ -101,8 +109,6 @@ export default class UploadScreen extends React.Component {
       mediaTypes: ImagePicker.MediaTypeOptions.All,
       quality: 1,
     });
-
-    console.log(result);
 
     if (!result.cancelled) {
       this.setState({ selectedImage: result.uri });
@@ -158,9 +164,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
-  contentContainer: {
-    paddingTop: 30,
-  },
+  contentContainer: {},
   sampleUploadImage: {
     width: 400,
     height: 250,
@@ -182,11 +186,6 @@ const styles = StyleSheet.create({
   },
   imageContainer: {
     alignItems: 'center',
-  },
-  buttonContainer: {
-    margin: 20,
-    marginRight: 50,
-    marginLeft: 50,
   },
   noteText: {
     fontSize: 20,
