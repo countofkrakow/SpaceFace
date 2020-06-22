@@ -7,14 +7,15 @@ import Colors from '../constants/Colors';
 import StyledButton from './../components/StyledButton';
 import { CameraRoll } from 'react-native';
 import { DownloadImage } from './../util';
+import { MonoText } from './../components/StyledText';
 
 export default function ViewManipulation({ route, navigation }) {
   const { manipulation, upload } = route.params;
-  const [sliderState, setSliderState] = useState({ fraction: 0.5 });
+  const [sliderState, setSliderState] = useState({ fraction: 0 });
 
   const totalImageWidth = 300;
   return (
-    <View>
+    <View style={{ alignItems: 'center' }}>
       <View style={{ flexDirection: 'row' }}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Feather name="arrow-left" size={40} style={{ margin: 5 }} />
@@ -71,6 +72,12 @@ export default function ViewManipulation({ route, navigation }) {
           minimumTrackTintColor="#FFFFFF"
           maximumTrackTintColor="#000000"
         />
+      </View>
+      <View
+        style={{ flexDirection: 'row', justifyContent: 'space-between', width: totalImageWidth }}
+      >
+        <MonoText>Manipulated</MonoText>
+        <MonoText>Original</MonoText>
       </View>
     </View>
   );

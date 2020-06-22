@@ -5,6 +5,7 @@ import { TouchableOpacity } from 'react-native-gesture-handler';
 import Colors from '../constants/Colors';
 import StyledButton from './../components/StyledButton';
 import { MonoText } from './../components/StyledText';
+import { DownloadImage } from '../util';
 
 export default function ViewUploadScreen({ route, navigation }) {
   const { upload } = route.params;
@@ -22,7 +23,7 @@ export default function ViewUploadScreen({ route, navigation }) {
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           <Text style={{ fontSize: 20 }}>Photo</Text>
         </View>
-        <TouchableOpacity onPress={() => {}}>
+        <TouchableOpacity onPress={() => DownloadImage(upload.uri)}>
           <Feather name="download" size={40} style={{ margin: 5 }} />
         </TouchableOpacity>
       </View>

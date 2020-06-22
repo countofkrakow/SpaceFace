@@ -4,6 +4,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import ViewUploadScreen from './ViewUploadScreen';
 import ViewManipulation from './ViewManipulation';
+import ManipulateScreen from './ManipulateScreen';
 
 const Stack = createStackNavigator();
 
@@ -14,6 +15,7 @@ export default function MyPhotosContainer({ navigation }) {
         <Stack.Screen name="MyPhotosScreen" component={MyPhotosScreen} />
         <Stack.Screen name="ViewUploadScreen" component={ViewUploadScreen} />
         <Stack.Screen name="ViewManipulation" component={ViewManipulation} />
+        <Stack.Screen name="ManipulateScreen" component={ManipulateScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
