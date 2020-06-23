@@ -7,6 +7,6 @@ numpy==1.18
 imutils
 bz2file
 requests
-keras
+keras==2.3.1
 dlib
 requests_toolbelt
