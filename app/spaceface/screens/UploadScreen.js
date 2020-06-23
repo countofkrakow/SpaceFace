@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, StyleSheet, Text, TouchableOpacity, View, RefreshControl } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
 import * as ImagePicker from 'expo-image-picker';
 
@@ -7,6 +7,8 @@ import { MonoText } from '../components/StyledText';
 import { LoadingImage, LoadingScreen } from '../components/Loading';
 import Colors from '../constants/Colors';
 import StyledButton from './../components/StyledButton';
+import { GetUploads, StoreUpload } from '../data/data';
+import { GetImageExtension } from './../util';
 
 export default class UploadScreen extends React.Component {
   constructor(props) {
@@ -23,11 +25,28 @@ export default class UploadScreen extends React.Component {
         // },
       ],
       loading: true,
+      refreshing: false,
     };
   }
 
   async getPendingUploads() {
-    return [];
+    const uploads = await GetUploads();
+    return uploads.filter((upload) => upload.ready == false);
+  }
+
+  async refresh() {
+    if (this.state.refreshing) {
+      return;
+    }
+    this.setState({ refreshing: true });
+    let pendingUploads = this.state.pendingUploads;
+    await Promise.all(
+      pendingUploads.map(async (upload) => {
+        // Do get request...;
+        // pendingUploads = ...
+      })
+    );
+    setTimeout(() => this.setState({ refreshing: false }), 1000);
   }
 
   async componentDidMount() {
@@ -36,6 +55,7 @@ export default class UploadScreen extends React.Component {
       loading: false,
       pendingUploads,
     });
+    this.refresh();
   }
 
   renderNoImage() {
@@ -81,7 +101,16 @@ export default class UploadScreen extends React.Component {
   renderPendingUploads() {
     return (
       <View style={styles.container}>
-        <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+        <ScrollView
+          style={styles.container}
+          contentContainerStyle={styles.contentContainer}
+          refreshControl={
+            <RefreshControl
+              refreshing={this.state.refreshing}
+              onRefresh={this.refresh.bind(this)}
+            />
+          }
+        >
           {this.state.pendingUploads.map((pendingUpload, i) => (
             <PendingUpload key={i} pendingUpload={pendingUpload} />
           ))}
@@ -116,13 +145,43 @@ export default class UploadScreen extends React.Component {
   }
 
   async uploadButtonPress() {
+    this.setState({ loading: true });
+    let presignedUrlResponse = await fetch(
+      'https://c6vrdtg6uc.execute-api.us-west-2.amazonaws.com/spaceface/encode?push_token=123'
+    );
+    if (!presignedUrlResponse.ok) {
+      console.log(presignedUrlResponse.statusText);
+      return;
+    }
+    const presignedUrlData = await presignedUrlResponse.json();
+
+    const fileType = GetImageExtension(this.state.selectedImage);
+    const mimeType = 'image/' + fileType.substr(1);
+    let formData = new FormData();
+    Object.keys(presignedUrlData.fields).forEach((field) =>
+      formData.append(field, presignedUrlData.fields[field])
+    );
+    formData.append('file', {
+      uri: this.state.selectedImage,
+      name: 'image' + fileType,
+      type: mimeType,
+    });
+    const resultData = await fetch(presignedUrlData.url, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    const newUpload = {
+      key: presignedUrlData.fields.key,
+      uri: presignedUrlData.url + presignedUrlData.fields.key,
+    };
+    StoreUpload(newUpload);
     this.setState({
       selectedImage: null,
-      pendingUploads: this.state.pendingUploads.concat([
-        {
-          uri: this.state.selectedImage,
-        },
-      ]),
+      loading: false,
+      pendingUploads: this.state.pendingUploads.concat([newUpload]),
     });
   }
 
