@@ -5,17 +5,15 @@ RUN apt-get install -y libsm6 libxext6 libxrender-dev
 COPY processor_docker/requirements.txt .
 RUN pip3 install -r requirements.txt
 
-RUN mkdir -p /raw /aligned /data /mask /generated /latent
+RUN mkdir -p /raw /aligned /data /mask /generated /latent /cache
 
 # Pre-download the models. Warning, the way its done the downloads are cached,
 # so if you change model you need to clear docker build cache.
 RUN wget https://build-artifacts-1.s3-us-west-2.amazonaws.com/karras2019stylegan-ffhq-1024x1024.pkl
 RUN wget https://build-artifacts-1.s3-us-west-2.amazonaws.com/shape_predictor_68_face_landmarks.dat.bz2
-RUN mkdir cache
 RUN mv -t cache karras2019stylegan-ffhq-1024x1024.pkl shape_predictor_68_face_landmarks.dat.bz2
 
 COPY . .
 USER root
-RUN mkdir -p /raw /aligned /data /mask /generated /latent
 
 CMD ["python", "processor.py"]
