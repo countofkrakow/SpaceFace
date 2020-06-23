@@ -7,9 +7,10 @@ import { MonoText } from '../components/StyledText';
 import { LoadingImage, LoadingScreen } from '../components/Loading';
 import Colors from '../constants/Colors';
 import StyledButton from './../components/StyledButton';
-import { GetUploads, StoreUpload } from '../data/data';
+import { GetUploads, StoreUpload } from '../data/Data';
 import { GetImageExtension } from './../util';
 import Toast from 'react-native-tiny-toast';
+import Api from '../constants/Api';
 
 export default class UploadScreen extends React.Component {
   constructor(props) {
@@ -40,19 +41,15 @@ export default class UploadScreen extends React.Component {
       return;
     }
     this.setState({ refreshing: true });
-    let pendingUploads = await this.getPendingUploads();
-    // await Promise.all(
-    //   pendingUploads.map(async (upload) => {
-    //     // Do get request...;
-    //     // pendingUploads = ...
-    //   })
-    // );
-    setTimeout(() => this.setState({ refreshing: false, loading: false, pendingUploads }), 1000);
+    this.setState({
+      refreshing: false,
+      loading: false,
+      pendingUploads: await this.getPendingUploads(),
+    });
   }
 
   async componentDidMount() {
     const pendingUploads = await this.getPendingUploads();
-    console.log(pendingUploads.length);
     if (pendingUploads.length == 0) {
       this.setState({
         loading: false,
@@ -69,14 +66,7 @@ export default class UploadScreen extends React.Component {
         <ScrollView
           style={styles.container}
           contentContainerStyle={styles.contentContainer}
-          refreshControl={
-            <RefreshControl
-              refreshing={false}
-              onRefresh={async () =>
-                this.setState({ pendingUploads: await this.getPendingUploads() })
-              }
-            />
-          }
+          refreshControl={<RefreshControl refreshing={false} onRefresh={this.refresh.bind(this)} />}
         >
           <View style={styles.getStartedContainer}>
             <Text style={styles.getStartedText}>
@@ -162,9 +152,7 @@ export default class UploadScreen extends React.Component {
 
   async uploadButtonPress() {
     this.setState({ loading: true });
-    let presignedUrlResponse = await fetch(
-      'https://c6vrdtg6uc.execute-api.us-west-2.amazonaws.com/spaceface/encode?push_token=123'
-    );
+    let presignedUrlResponse = await fetch(Api.encode(''));
     // console.log('Presigned fetch complete.');
     if (!presignedUrlResponse.ok) {
       console.log(presignedUrlResponse.statusText);

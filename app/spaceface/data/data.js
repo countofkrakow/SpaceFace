@@ -1,14 +1,31 @@
 import { AsyncStorage } from 'react-native';
+import Api from '../constants/Api';
 
 const UPLOADS_KEY = 'uploads';
 const MANIPULATIONS_KEY = 'uploads';
 
-export async function GetUploads() {
+async function getStoredUploads() {
   const uploadsStr = await AsyncStorage.getItem(UPLOADS_KEY);
   if (uploadsStr) {
     return JSON.parse(uploadsStr);
   }
   return [];
+}
+
+async function checkUploadReady(upload) {
+  if (upload.ready) {
+    return;
+  }
+  const result = await fetch(Api.encode_result(upload.key));
+  if (result.status == 200) {
+    upload.ready = true;
+  }
+}
+
+export async function GetUploads() {
+  const uploads = await getStoredUploads();
+  await Promise.all(uploads.map(checkUploadReady));
+  return uploads;
 }
 
 let uploadLock = false;

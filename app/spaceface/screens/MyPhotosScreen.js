@@ -6,6 +6,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { MonoText } from '../components/StyledText';
 import { LoadingImage, LoadingScreen } from '../components/Loading';
 import Colors from '../constants/Colors';
+import { GetUploads } from '../data/Data';
 
 export default class MyPhotosScreen extends React.Component {
   constructor(props) {
@@ -17,11 +18,7 @@ export default class MyPhotosScreen extends React.Component {
   }
 
   async getUploads() {
-    return [
-      {
-        uri: 'https://www.eyeployment.com/wp-content/uploads/2018/01/ts_report1.jpg',
-      },
-    ];
+    return (await GetUploads()).filter((upload) => upload.ready);
   }
 
   async componentDidMount() {
