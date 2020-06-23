@@ -9,6 +9,7 @@ import Colors from '../constants/Colors';
 import StyledButton from './../components/StyledButton';
 import { GetUploads, StoreUpload } from '../data/data';
 import { GetImageExtension } from './../util';
+import Toast from 'react-native-tiny-toast';
 
 export default class UploadScreen extends React.Component {
   constructor(props) {
@@ -39,29 +40,44 @@ export default class UploadScreen extends React.Component {
       return;
     }
     this.setState({ refreshing: true });
-    let pendingUploads = this.state.pendingUploads;
-    await Promise.all(
-      pendingUploads.map(async (upload) => {
-        // Do get request...;
-        // pendingUploads = ...
-      })
-    );
-    setTimeout(() => this.setState({ refreshing: false }), 1000);
+    let pendingUploads = await this.getPendingUploads();
+    // await Promise.all(
+    //   pendingUploads.map(async (upload) => {
+    //     // Do get request...;
+    //     // pendingUploads = ...
+    //   })
+    // );
+    setTimeout(() => this.setState({ refreshing: false, loading: false, pendingUploads }), 1000);
   }
 
   async componentDidMount() {
     const pendingUploads = await this.getPendingUploads();
-    this.setState({
-      loading: false,
-      pendingUploads,
-    });
-    this.refresh();
+    console.log(pendingUploads.length);
+    if (pendingUploads.length == 0) {
+      this.setState({
+        loading: false,
+        pendingUploads,
+      });
+    } else {
+      this.refresh();
+    }
   }
 
   renderNoImage() {
     return (
       <View style={styles.container}>
-        <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+        <ScrollView
+          style={styles.container}
+          contentContainerStyle={styles.contentContainer}
+          refreshControl={
+            <RefreshControl
+              refreshing={false}
+              onRefresh={async () =>
+                this.setState({ pendingUploads: await this.getPendingUploads() })
+              }
+            />
+          }
+        >
           <View style={styles.getStartedContainer}>
             <Text style={styles.getStartedText}>
               You have no pending uploads. Upload a new photo with a face. We recommend uploading a
@@ -149,11 +165,18 @@ export default class UploadScreen extends React.Component {
     let presignedUrlResponse = await fetch(
       'https://c6vrdtg6uc.execute-api.us-west-2.amazonaws.com/spaceface/encode?push_token=123'
     );
+    // console.log('Presigned fetch complete.');
     if (!presignedUrlResponse.ok) {
       console.log(presignedUrlResponse.statusText);
+      this.setState({
+        selectedImage: null,
+        loading: false,
+      });
+      Toast.show('Upload failed.', { position: Toast.position.BOTTOM });
       return;
     }
     const presignedUrlData = await presignedUrlResponse.json();
+    // console.log(presignedUrlData.fields.key);
 
     const fileType = GetImageExtension(this.state.selectedImage);
     const mimeType = 'image/' + fileType.substr(1);
@@ -166,18 +189,31 @@ export default class UploadScreen extends React.Component {
       name: 'image' + fileType,
       type: mimeType,
     });
-    const resultData = await fetch(presignedUrlData.url, {
+    // console.log('Uploading image');
+    const uploadResponse = await fetch(presignedUrlData.url, {
       method: 'POST',
       body: formData,
       headers: {
         'Content-Type': 'multipart/form-data',
       },
     });
+    if (!uploadResponse.ok) {
+      console.log('Upload failed:');
+      console.log(uploadResponse.statusText);
+      console.log(await uploadResponse.text());
+      this.setState({
+        selectedImage: null,
+        loading: false,
+      });
+      Toast.show('Upload failed.', { position: Toast.position.BOTTOM });
+      return;
+    }
     const newUpload = {
       key: presignedUrlData.fields.key,
       uri: presignedUrlData.url + presignedUrlData.fields.key,
+      ready: false,
     };
-    StoreUpload(newUpload);
+    await StoreUpload(newUpload);
     this.setState({
       selectedImage: null,
       loading: false,
