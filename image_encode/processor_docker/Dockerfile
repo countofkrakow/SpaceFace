@@ -11,6 +11,7 @@ RUN mkdir -p /raw /aligned /data /mask /generated /latent
 # so if you change model you need to clear docker build cache.
 RUN wget https://build-artifacts-1.s3-us-west-2.amazonaws.com/karras2019stylegan-ffhq-1024x1024.pkl
 RUN wget https://build-artifacts-1.s3-us-west-2.amazonaws.com/shape_predictor_68_face_landmarks.dat.bz2
+RUN mkdir cache
 RUN mv -t cache karras2019stylegan-ffhq-1024x1024.pkl shape_predictor_68_face_landmarks.dat.bz2
 
 COPY . .
