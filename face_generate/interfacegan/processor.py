@@ -102,13 +102,16 @@ def edit_image(args):
             for interpolations_batch in model.get_batch_inputs(interpolations):
                 outputs = model.easy_synthesize(interpolations_batch, **kwargs)
                 for img in outputs['image']:
-                    imname = f'{i}_{interpolation_id}'
-                    formatted_img = cv2.imencode('.png', cv2.cvtColor(img, cv2.COLOR_RGB2BGR))[1].tobytes()
-                    print(formatted_img)
+                    imname = f'{interpolation_id}.png'
+                    formatted_img_bytes = cv2.imencode('.png', cv2.cvtColor(img, cv2.COLOR_RGB2BGR))[1].tobytes()
+                    memory_file_img = BytesIO(formatted_img_bytes)
+                    # memory_file_img.seek(0)
+                    s3.upload_fileobj(memory_file_img, RESULTS_BUCKET, os.path.join(args['result_id'], imname))
+                    # print(formatted_img)
                     data = ZipInfo(imname)
                     data.date_time = time.localtime(time.time())[:6]
                     data.compress_type = ZIP_DEFLATED
-                    zf.writestr(data, formatted_img)
+                    # zf.writestr(data, formatted_img)
                     interpolation_id += 1
 
     memory_file.seek(0)

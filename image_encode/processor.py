@@ -37,10 +37,10 @@ args = {
     'randomize_noise': True,
     'tile_dlatents': False,
     'clipping_threshold': 2.0,
-    'load_mask': False,
+    'load_mask': True,
     'face_mask': True,
     'use_grabcut': True,
-    'scale_mask': 1.4,
+    'scale_mask': 1.5,
     'composite_mask': True,
     'composite_blur': 8,
     'output_video': False,
@@ -81,6 +81,7 @@ RAW_IMAGES_DIR = 'raw'
 ALIGNED_IMAGES_DIR = 'aligned'
 LATENT_BUCKET = 'latents'
 IMAGES_BUCKET = 'spaceface-images'
+GENERATED_BUCKET = 'spaceface-generated'
 QUEUE_URL = 'https://sqs.us-west-2.amazonaws.com/454494063118/encoderQ'
 NUM_BATCHES = 10
 
@@ -124,7 +125,7 @@ def align_images(img_name, landmarks_detector):
         print(inst)
         print("Exception in landmark detection!")
 
-def optimize_latents(images_batch, latent_paths, ff_model, generator, perceptual_model):
+def optimize_latents(images_batch, latent_paths, ff_model, generator, perceptual_model, s3):
     if args['output_video']:
         pass
         # TODO add video
@@ -205,7 +206,12 @@ def optimize_latents(images_batch, latent_paths, ff_model, generator, perceptual
             img_array = img_array.astype(np.uint8)
             img_array = np.where(mask, np.array(img_array), orig_img)
         img = Image.fromarray(img_array, 'RGB')
-        # img.save(os.path.join(args['generated_images_dir'], f'{img_name}.png'), 'PNG')
+
+        # TODO upload generated img
+        img_fname = f'{img_name[:-3]}.png'
+        imname = os.path.join(args['generated_images_dir'], img_fname)
+        img.save(imname, 'PNG')
+        s3.upload_file(imname, GENERATED_BUCKET, img_fname)
         np.save(latent_path, dlatent)
     generator.reset_dlatents()
 
@@ -299,7 +305,7 @@ def run():
 
         if len(aligned_batch) > 0:
             # images_batch, latent_paths, ff_model, generator, perceptual_model
-            optimize_latents(aligned_batch, latent_batch, ff_model, generator, perceptual_model)
+            optimize_latents(aligned_batch, latent_batch, ff_model, generator, perceptual_model, s3)
             for latent_path, latent_fname in zip(latent_batch, latent_fnames):
                 s3.upload_file(latent_path, LATENT_BUCKET, latent_fname)
 
