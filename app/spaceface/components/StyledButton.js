@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { StyleSheet, View, Button } from 'react-native';
 
-export default function StyledButton({ onPress, text }) {
+export default function StyledButton({ onPress, text, disabled }) {
   return (
     <View style={styles.buttonContainer}>
-      <Button title={text} onPress={onPress} />
+      <Button disabled={disabled} title={text} onPress={onPress} />
     </View>
   );
 }

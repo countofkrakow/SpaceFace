@@ -12,6 +12,7 @@ import { MonoText } from './../components/StyledText';
 export default function ViewManipulation({ route, navigation }) {
   const { manipulation, upload } = route.params;
   const [sliderState, setSliderState] = useState({ fraction: 0 });
+  const [step, setStep] = useState(0);
 
   const totalImageWidth = 300;
   return (
@@ -23,7 +24,7 @@ export default function ViewManipulation({ route, navigation }) {
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           <Text style={{ fontSize: 20 }}>Photo</Text>
         </View>
-        <TouchableOpacity onPress={() => DownloadImage(manipulation.uri)}>
+        <TouchableOpacity onPress={() => DownloadImage(manipulation.uri + '/' + step + '.png')}>
           <Feather name="download" size={40} style={{ margin: 5 }} />
         </TouchableOpacity>
       </View>
@@ -58,7 +59,7 @@ export default function ViewManipulation({ route, navigation }) {
               height: 400,
               resizeMode: 'contain',
             }}
-            source={{ uri: manipulation.uri }}
+            source={{ uri: manipulation.uri + '/' + step + '.png' }}
           />
         </View>
       </View>
@@ -78,6 +79,24 @@ export default function ViewManipulation({ route, navigation }) {
       >
         <MonoText>Manipulated</MonoText>
         <MonoText>Original</MonoText>
+      </View>
+      <View style={{ alignItems: 'center' }}>
+        <Slider
+          style={{ width: totalImageWidth, height: 40 }}
+          value={step}
+          onValueChange={(s) => setStep(s)}
+          minimumValue={0}
+          maximumValue={manipulation.steps - 1}
+          step={1}
+          minimumTrackTintColor="#FFFFFF"
+          maximumTrackTintColor="#000000"
+        />
+      </View>
+      <View
+        style={{ flexDirection: 'row', justifyContent: 'space-between', width: totalImageWidth }}
+      >
+        <MonoText>0</MonoText>
+        <MonoText>{manipulation.steps - 1}</MonoText>
       </View>
     </View>
   );

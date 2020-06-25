@@ -2,9 +2,13 @@ import { AsyncStorage } from 'react-native';
 import Api from '../constants/Api';
 
 const UPLOADS_KEY = 'uploads';
-const MANIPULATIONS_KEY = 'uploads';
+const MANIPULATIONS_KEY = 'manipulations';
 
 async function getStoredUploads() {
+  // AsyncStorage.setItem(
+  //   UPLOADS_KEY,
+  //   '[{"uri":"https://spaceface-images.s3-us-west-2.amazonaws.com/464db573-b51e-11ea-8d94-6b06521ea385","key":"464db573-b51e-11ea-8d94-6b06521ea385","ready":true}]'
+  // );
   const uploadsStr = await AsyncStorage.getItem(UPLOADS_KEY);
   if (uploadsStr) {
     return JSON.parse(uploadsStr);
@@ -54,12 +58,29 @@ async function GetAllManipulations() {
   return {};
 }
 
-export async function GetManipulations(upload) {
+async function GetStoredManipulations(upload) {
   const manipulations = await GetAllManipulations();
   if (upload.key in manipulations) {
     return manipulations[upload.key];
   }
   return [];
+}
+
+export async function GetManipulations(upload) {
+  // AsyncStorage.setItem(MANIPULATIONS_KEY, JSON.stringify({}));
+  const storedManipulations = await GetStoredManipulations(upload);
+  await Promise.all(
+    storedManipulations.map(async (manipulation) => {
+      if (manipulation.ready) {
+        return;
+      }
+      const result = await fetch(Api.manipulate_result(manipulation.key));
+      if (result.status == 200) {
+        manipulation.ready = true;
+      }
+    })
+  );
+  return storedManipulations;
 }
 
 let manipulationLock = false;
@@ -74,6 +95,7 @@ export async function StoreManipulation(upload, manipulation) {
     manipulations[upload.key] = [];
   }
   manipulations[upload.key] = manipulations[upload.key].concat([manipulation]);
+  // console.log(manipulations);
   await AsyncStorage.setItem(MANIPULATIONS_KEY, JSON.stringify(manipulations));
   manipulationLock = false;
 }
