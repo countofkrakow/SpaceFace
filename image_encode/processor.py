@@ -40,7 +40,7 @@ args = {
     'load_mask': True,
     'face_mask': True,
     'use_grabcut': True,
-    'scale_mask': 1.5,
+    'scale_mask': 1.2,
     'composite_mask': True,
     'composite_blur': 8,
     'output_video': False,
