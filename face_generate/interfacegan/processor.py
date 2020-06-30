@@ -88,38 +88,41 @@ def edit_image(args):
     total_num = latent_codes.shape[0]
 
     logger.info(f'Editing {total_num} samples.')
+    images = []
+    for sample_id in tqdm(range(total_num), leave=False):
+        interpolations = linear_interpolate(latent_codes[sample_id:sample_id + 1],
+                                          boundary,
+                                          start_distance=args['min'],
+                                          end_distance=args['max'],
+                                          steps=args['steps'])
+        interpolation_id = 0
+        for interpolations_batch in model.get_batch_inputs(interpolations):
+            outputs = model.easy_synthesize(interpolations_batch, **kwargs)
+            for img in outputs['image']:
+                imname = f'{interpolation_id}.png'
+                formatted_img_bytes = cv2.imencode('.png', cv2.cvtColor(img, cv2.COLOR_RGB2BGR))[1].tobytes()
+                memory_file_img = BytesIO(formatted_img_bytes)
+                s3.upload_fileobj(memory_file_img, RESULTS_BUCKET, os.path.join(args['result_id'], imname))
+                memory_file_img = BytesIO(formatted_img_bytes)
+                file_bytes = np.asarray(bytearray(memory_file_img.read()), dtype=np.uint8)
+                image = cv2.imdecode(file_bytes, cv2.COLOR_RGB2BGR)
+                images.append(image)
+                height, width, layers = image.shape
+                size = (width,height)
+                interpolation_id += 1
 
-    memory_file = BytesIO()
-    zipfile_name = f"{id}.zip"
-    with ZipFile(memory_file, 'w') as zf:
-        for i, sample_id in enumerate(tqdm(range(total_num), leave=False)):
-            interpolations = linear_interpolate(latent_codes[sample_id:sample_id + 1],
-                                              boundary,
-                                              start_distance=args['min'],
-                                              end_distance=args['max'],
-                                              steps=args['steps'])
-            interpolation_id = 0
-            for interpolations_batch in model.get_batch_inputs(interpolations):
-                outputs = model.easy_synthesize(interpolations_batch, **kwargs)
-                for img in outputs['image']:
-                    imname = f'{interpolation_id}.png'
-                    formatted_img_bytes = cv2.imencode('.png', cv2.cvtColor(img, cv2.COLOR_RGB2BGR))[1].tobytes()
-                    memory_file_img = BytesIO(formatted_img_bytes)
-                    # memory_file_img.seek(0)
-                    s3.upload_fileobj(memory_file_img, RESULTS_BUCKET, os.path.join(args['result_id'], imname))
-                    # print(formatted_img)
-                    data = ZipInfo(imname)
-                    data.date_time = time.localtime(time.time())[:6]
-                    data.compress_type = ZIP_DEFLATED
-                    # zf.writestr(data, formatted_img)
-                    interpolation_id += 1
+        video_name = f'{id}.mp4'
+        fourcc = cv2.VideoWriter_fourcc(*'MP4V')
+        out = cv2.VideoWriter(video_name, fourcc, 20, size)
 
-    memory_file.seek(0)
+        for i in range(len(images)):
+            out.write(images[i])
+        out.release()
+        s3.upload_file(video_name, RESULTS_BUCKET, os.path.join(args['result_id'], 'video', video_name))
+
     assert interpolation_id == args['steps']
     logger.debug(f'  Finished sample {sample_id:3d}.')
     logger.info(f'Successfully edited {total_num} samples.')
-    # send file object to s3
-    s3.upload_fileobj(memory_file, RESULTS_BUCKET, args['result_id'])
     print(f'finished uploading file {str(args["result_id"])}')
 
 def run():
