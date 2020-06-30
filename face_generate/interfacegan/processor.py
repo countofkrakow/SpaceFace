@@ -43,19 +43,32 @@ def fetch_args():
         return None
 
     b_type = os.environ['TYPE']
-    min = os.environ['MIN']
-    max = os.environ['MAX']
-    steps = os.environ['STEPS']
-    id = os.environ['ID']
-    result_id = os.environ['RESULT_ID']
-    return {
-        'type': b_type,
-        'min': int(min),
-        'max': int(max),
-        'steps': int(steps),
-        'id': id,
-        'result_id': result_id
-    }
+    if b_type == 'interpolate':
+        id1 = os.environ['ID1']
+        id2 = os.environ['ID2']
+        steps = os.environ['STEPS']
+        result_id = os.environ['RESULT_ID']
+        return {
+            'type': b_type,
+            'id1': id1,
+            'id2': id2,
+            'steps': steps,
+            'result_id': result_id
+        }
+    else:
+        min = os.environ['MIN']
+        max = os.environ['MAX']
+        steps = os.environ['STEPS']
+        id = os.environ['ID']
+        result_id = os.environ['RESULT_ID']
+        return {
+            'type': b_type,
+            'min': int(min),
+            'max': int(max),
+            'steps': int(steps),
+            'id': id,
+            'result_id': result_id
+        }
 
 def edit_image(args):
     b = args['type']
@@ -125,10 +138,52 @@ def edit_image(args):
     logger.info(f'Successfully edited {total_num} samples.')
     print(f'finished uploading file {str(args["result_id"])}')
 
+def interpolate(args):
+    id1 = args['id1']
+    id2 = args['id2']
+    steps = int(args['steps'])
+    result_id = args['result_id']
+    fname1, fname2 = f'{id1}.npy', f'{id2}.npy'
+    latent_code_path1, latent_code_path2 = f'latents/{fname1}', f'latents/{fname2}'
+    s3 = boto3.client('s3')
+    s3.download_file('latents', fname1, fname1)
+    s3.download_file('latents', fname2, fname2)
+    latent1 = np.load(fname1)
+    latent2 = np.load(fname2)
+    interval = np.linspace(latent1, latent2, steps)
+    images = []
+    interpolation_id = 0
+    for interpolations_batch in model.get_batch_inputs(interval):
+        outputs = model.easy_synthesize(interpolations_batch, **kwargs)
+        for img in outputs['image']:
+            imname = f'{interpolation_id}.png'
+            formatted_img_bytes = cv2.imencode('.png', cv2.cvtColor(img, cv2.COLOR_RGB2BGR))[1].tobytes()
+            memory_file_img = BytesIO(formatted_img_bytes)
+            s3.upload_fileobj(memory_file_img, RESULTS_BUCKET, os.path.join(args['result_id'], imname))
+            memory_file_img = BytesIO(formatted_img_bytes)
+            file_bytes = np.asarray(bytearray(memory_file_img.read()), dtype=np.uint8)
+            image = cv2.imdecode(file_bytes, cv2.COLOR_RGB2BGR)
+            images.append(image)
+            height, width, layers = image.shape
+            size = (width,height)
+            interpolation_id += 1
+
+    video_name = f'{id1}_{id2}.mp4'
+    fourcc = cv2.VideoWriter_fourcc(*'MP4V')
+    out = cv2.VideoWriter(video_name, fourcc, 20, size)
+
+    for i in range(len(images)):
+        out.write(images[i])
+    out.release()
+    s3.upload_file(video_name, RESULTS_BUCKET, os.path.join(args['result_id'], 'video', video_name))
+
 def run():
     args = fetch_args()
     if args is not None:
-        edit_image(args)
+        if args['type'] == 'interpolate':
+            interpolate(args)
+        else:
+            edit_image(args)
 
 if __name__ == '__main__':
     setup()
