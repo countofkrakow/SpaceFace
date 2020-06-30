@@ -125,7 +125,7 @@ def edit_image(args):
                 interpolation_id += 1
 
         video_name = f'{id}.mp4'
-        fourcc = cv2.VideoWriter_fourcc(*'MP4V')
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         out = cv2.VideoWriter(video_name, fourcc, 20, size)
 
         for i in range(len(images)):
@@ -169,7 +169,7 @@ def interpolate(args):
             interpolation_id += 1
 
     video_name = f'{id1}_{id2}.mp4'
-    fourcc = cv2.VideoWriter_fourcc(*'MP4V')
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     out = cv2.VideoWriter(video_name, fourcc, 20, size)
 
     for i in range(len(images)):
