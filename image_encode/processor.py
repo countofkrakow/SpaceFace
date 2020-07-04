@@ -74,6 +74,7 @@ from io import BytesIO
 from requests_toolbelt.multipart import decoder
 import base64
 from keras.applications.resnet50 import preprocess_input
+from pynamodb.connection import TableConnection
 import json
 
 LANDMARKS_MODEL_URL = 'https://build-artifacts-1.s3-us-west-2.amazonaws.com/shape_predictor_68_face_landmarks.dat.bz2'
@@ -84,7 +85,8 @@ IMAGES_BUCKET = 'spaceface-images'
 GENERATED_BUCKET = 'spaceface-generated'
 QUEUE_URL = 'https://sqs.us-west-2.amazonaws.com/454494063118/encoderQ'
 NUM_BATCHES = 10
-
+TABLE_NAME = 'encoder-completion'
+REGION = 'us-west-2'
 
 def unpack_bz2(src_path):
     data = bz2.BZ2File(src_path).read()
@@ -207,7 +209,6 @@ def optimize_latents(images_batch, latent_paths, ff_model, generator, perceptual
             img_array = np.where(mask, np.array(img_array), orig_img)
         img = Image.fromarray(img_array, 'RGB')
 
-        # TODO upload generated img
         img_fname = f'{img_name[:-3]}.png'
         imname = os.path.join(args['generated_images_dir'], img_fname)
         img.save(imname, 'PNG')
@@ -222,6 +223,7 @@ def get_image_batch(bs, sqs, s3):
     img_fnames = []
     latent_fnames = []
     handles = []
+    ids = []
     queue_empty = False
     for i in range(bs):
         response = sqs.receive_message(
@@ -242,11 +244,12 @@ def get_image_batch(bs, sqs, s3):
         s3.download_file(IMAGES_BUCKET, fileId, file_path)
         img = Image.open(file_path)
         latent_fname = f'{os.path.splitext(fileId)[0]}.npy'
+        ids.append(fileId)
         latent_fnames.append(latent_fname)
         img_fnames.append(file_path)
         handles.append(handle)
 
-    return img_fnames, handles, latent_fnames, queue_empty
+    return img_fnames, handles, latent_fnames, ids, queue_empty
 
 def init_dependencies():
     tfl.init_tf()
@@ -271,8 +274,10 @@ def run():
 
     s3 = boto3.client('s3')
     sqs = boto3.client('sqs')
-
-    images, handles, latents, _ = get_image_batch(args['batch_size'], sqs, s3)
+    table = TableConnection(TABLE_NAME, region=REGION)
+    print(table.describe_table())
+    table.put_item('example-key', attributes={'id': 'value'})
+    images, handles, latents, ids, _ = get_image_batch(args['batch_size'], sqs, s3)
 
     if len(images) == 0:
         print("No requests found in queue...\nExiting...")
@@ -286,7 +291,8 @@ def run():
         latent_batch = []
         latent_fnames = []
         latent_handles = []
-        for file_path, latent_fname, handle in zip(images, latents, handles):
+        success_ids = []
+        for file_path, latent_fname, handle, id in zip(images, latents, handles, ids):
             print(f'latent_fname: {latent_fname}')
             head, tail = os.path.split(file_path)
             fname = tail.split('/')[-1]
@@ -295,24 +301,28 @@ def run():
             if aligned_path is None:
                 print("Deleting Faulty message from queue")
                 sqs.delete_message(QueueUrl=QUEUE_URL, ReceiptHandle=handle)
+                table.put_item(id, attributes={'id': id, "encoding_status": "error"})
                 continue
 
             latent_path = os.path.join(args['latent_dir'], latent_fname)
             latent_fnames.append(latent_fname)
             aligned_batch.append(aligned_path)
             latent_batch.append(latent_path)
+            success_ids.append(id)
             latent_handles.append(handle)
 
         if len(aligned_batch) > 0:
             # images_batch, latent_paths, ff_model, generator, perceptual_model
             optimize_latents(aligned_batch, latent_batch, ff_model, generator, perceptual_model, s3)
-            for latent_path, latent_fname in zip(latent_batch, latent_fnames):
+            for latent_path, latent_fname, id in zip(latent_batch, latent_fnames, success_ids):
+                # TODO post processing success
+                table.put_item(id, attributes={'id': id, "encoding_status": "success"})
                 s3.upload_file(latent_path, LATENT_BUCKET, latent_fname)
 
         for h in handles:
             sqs.delete_message(QueueUrl=QUEUE_URL, ReceiptHandle=h)
 
-        images, handles, latents, queue_empty = get_image_batch(args['batch_size'], sqs, s3)
+        images, handles, latents, ids, queue_empty = get_image_batch(args['batch_size'], sqs, s3)
 
 if __name__ == '__main__':
     run()
