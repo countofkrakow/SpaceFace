@@ -10,4 +10,3 @@ requests
 keras==2.3.1
 dlib
 requests_toolbelt
-pynamodb

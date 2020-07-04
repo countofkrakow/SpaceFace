@@ -74,7 +74,6 @@ from io import BytesIO
 from requests_toolbelt.multipart import decoder
 import base64
 from keras.applications.resnet50 import preprocess_input
-from pynamodb.connection import TableConnection
 import json
 
 LANDMARKS_MODEL_URL = 'https://build-artifacts-1.s3-us-west-2.amazonaws.com/shape_predictor_68_face_landmarks.dat.bz2'
@@ -274,9 +273,9 @@ def run():
 
     s3 = boto3.client('s3')
     sqs = boto3.client('sqs')
-    table = TableConnection(TABLE_NAME, region=REGION)
-    print(table.describe_table())
-    table.put_item('example-key', attributes={'id': 'value'})
+    dynamodb = boto3.resource('dynamodb')
+    table = dynamodb.Table(TABLE_NAME)
+
     images, handles, latents, ids, _ = get_image_batch(args['batch_size'], sqs, s3)
 
     if len(images) == 0:
@@ -301,7 +300,12 @@ def run():
             if aligned_path is None:
                 print("Deleting Faulty message from queue")
                 sqs.delete_message(QueueUrl=QUEUE_URL, ReceiptHandle=handle)
-                table.put_item(id, attributes={'id': id, "encoding_status": "error"})
+                table.put_item(
+                   Item={
+                        'id': id,
+                        'encoding_status': "error"
+                    }
+                )
                 continue
 
             latent_path = os.path.join(args['latent_dir'], latent_fname)
@@ -315,8 +319,12 @@ def run():
             # images_batch, latent_paths, ff_model, generator, perceptual_model
             optimize_latents(aligned_batch, latent_batch, ff_model, generator, perceptual_model, s3)
             for latent_path, latent_fname, id in zip(latent_batch, latent_fnames, success_ids):
-                # TODO post processing success
-                table.put_item(id, attributes={'id': id, "encoding_status": "success"})
+                table.put_item(
+                   Item={
+                        'id': id,
+                        'encoding_status': "success"
+                    }
+                )
                 s3.upload_file(latent_path, LATENT_BUCKET, latent_fname)
 
         for h in handles:
