@@ -34,7 +34,8 @@ def setup():
         'gender': 'boundaries/stylegan_ffhq_gender_w_boundary.npy',
         'pose': 'boundaries/stylegan_ffhq_pose_w_boundary.npy',
         'smile': 'boundaries/stylegan_ffhq_smile_w_boundary.npy',
-        'glasses': 'boundaries/stylegan_ffhq_eyeglasses_w_boundary.npy'
+        'glasses': 'boundaries/stylegan_ffhq_eyeglasses_w_boundary.npy',
+        'beauty': 'boundaries/beauty_boundary.npy'
     }
 
 def fetch_args():
