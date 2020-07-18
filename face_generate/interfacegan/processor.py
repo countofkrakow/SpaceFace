@@ -73,7 +73,7 @@ def fetch_args():
 
 def edit_image(args):
     b = args['type']
-
+    result_id = args['result_id']
     if b not in boundaries:
         return "Invalid boundary"
 
@@ -116,7 +116,7 @@ def edit_image(args):
                 imname = f'{interpolation_id}.png'
                 formatted_img_bytes = cv2.imencode('.png', cv2.cvtColor(img, cv2.COLOR_RGB2BGR))[1].tobytes()
                 memory_file_img = BytesIO(formatted_img_bytes)
-                s3.upload_fileobj(memory_file_img, RESULTS_BUCKET, os.path.join(args['result_id'], imname))
+                s3.upload_fileobj(memory_file_img, RESULTS_BUCKET, os.path.join(result_id, imname))
                 memory_file_img = BytesIO(formatted_img_bytes)
                 file_bytes = np.asarray(bytearray(memory_file_img.read()), dtype=np.uint8)
                 image = cv2.imdecode(file_bytes, cv2.COLOR_RGB2BGR)
@@ -132,7 +132,7 @@ def edit_image(args):
         for i in range(len(images)):
             out.write(images[i])
         out.release()
-        s3.upload_file(video_name, RESULTS_BUCKET, os.path.join(args['result_id'], 'video', video_name))
+        s3.upload_file(video_name, RESULTS_BUCKET, os.path.join(result_id, 'video', video_name))
 
     assert interpolation_id == args['steps']
     logger.debug(f'  Finished sample {sample_id:3d}.')
