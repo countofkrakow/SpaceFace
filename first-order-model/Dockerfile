@@ -7,8 +7,8 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get -qq update \
 COPY . /app/
 WORKDIR /app
 
-
 RUN pip3 install \
+  --upgrade setuptools \
   https://download.pytorch.org/whl/cu100/torch-1.0.0-cp36-cp36m-linux_x86_64.whl \
   -r requirements.txt
 

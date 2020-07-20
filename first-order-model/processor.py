@@ -1,6 +1,7 @@
 import matplotlib
 matplotlib.use('Agg')
 import os, sys
+import cv2
 import yaml
 from tqdm import tqdm
 import boto3
@@ -15,6 +16,7 @@ from modules.keypoint_detector import KPDetector
 from animate import normalize_kp
 from scipy.spatial import ConvexHull
 from faced import FaceDetector
+from pykalman import KalmanFilter
 
 log_dir = 'log'
 cfg_path = 'config/vox-adv-256.yaml'
@@ -67,6 +69,49 @@ def make_animation(source_image, driving_video, generator, kp_detector):
             predictions.append(np.transpose(out['prediction'].data.cpu().numpy(), [0, 2, 3, 1])[0])
     return predictions
 
+def crop_video(path):
+    face_detector = FaceDetector()
+
+    cap = cv2.VideoCapture(path)
+
+    width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)   # float
+    height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT) # float
+    fps = cap.get(cv2.CAP_PROP_FPS) # float
+
+    fourcc = cv2.VideoWriter_fourcc(*'MJPG')
+    out = cv2.VideoWriter("output.avi",fourcc, fps, (int(width), int(height)))
+
+    bbox_video = []
+    ret, frame = cap.read()
+    while ret:
+        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        bboxes = face_detector.predict(rgb_frame, 0.9)
+        if len(bboxes) != 0:
+            main_face = max(bboxes, key=lambda x: x[4])
+            bbox_video.append([main_face[0], main_face[1], main_face[2], main_face[3]])
+
+            print("Bounding boxes:")
+            print(bboxes)
+            print(f"main face: {main_face}")
+        else:
+            print("No bounding boxes found")
+            # TODO enlarge bounding box
+            bbox_video.append([0, 0, 0, 0])
+
+        ret, frame = cap.read()
+
+
+    # When everything done, release the capture
+    cap.release()
+    kf = KalmanFilter(initial_state_mean=0, n_dim_obs=4)
+    smoothed = kf.em(bbox_video).smooth(bbox_video)
+    smoothed = [[smoothed[i][j] for j in range(len(smoothed[0]))] for i in range(len(smoothed))]
+    print("bboxes")
+    print(bbox_video)
+    print("smoothed")
+    print(smoothed)
+    print("done")
+
 if __name__ == '__main__':
     SRC_IMG = os.environ['img']
     SRC_VIDEO = os.environ['video']
@@ -86,6 +131,7 @@ if __name__ == '__main__':
     os.makedirs(log_dir, exist_ok=True)
 
     # load source image and video
+    # TODO change to cv2 imread
     source_image = imageio.imread(SRC_IMG)
     reader = imageio.get_reader(SRC_VIDEO)
     fps = reader.get_meta_data()['fps']
@@ -97,19 +143,7 @@ if __name__ == '__main__':
         pass
     reader.close()
 
-    aligned_video = []
-    for img in driving_video:
-        fname = "frame.png"
-
-        imageio.imwrite(fname, img)
-        while not os.path.exists(fname):
-            time.sleep(1)
-
-        # TODO align img
-        os.remove(fname)
-        if res is not None:
-            print("added frame")
-            aligned_video.append(imageio.imread(res))
+    crop_video(SRC_VIDEO)
 
     # Resize input
     source_image = resize(source_image, (256, 256))[..., :3]
