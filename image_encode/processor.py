@@ -31,7 +31,7 @@ args = {
     'use_pixel_loss': 1.5,
     'use_mssim_loss': 200,
     'use_lpips_loss': 0,
-    'use_l1_penalty': 0.3,
+    'use_l1_penalty': 0.2,
     'use_discriminator_loss': 0,
     'use_adaptive_loss': False,
     'randomize_noise': True,
