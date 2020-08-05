@@ -1,0 +1,3 @@
+opencv-python
+boto3
+matplotlib
