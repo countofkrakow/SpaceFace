@@ -59,7 +59,14 @@ def crop_video(path, frame_num, driving_video, crop_scale=2.5):
     cap.release()
 
     bboxes = face_detector.predict(driving_video[frame_num])
-    x, y, w, h, _ = max(bboxes, key=lambda x: x[4])
+    if len(bboxes) == 0:
+        for frame in driving_video:
+            bboxes = face_detector.predict(frame)
+            if len(bboxes) > 0:
+                x, y, w, h, _ = max(bboxes, key=lambda x: x[4])
+                break
+    else:
+        x, y, w, h, _ = max(bboxes, key=lambda x: x[4])
 
     new_x = x - crop_scale * w // 2
     new_y = y - crop_scale * w // 2
@@ -97,11 +104,23 @@ def find_best_frame(source, driving, cpu=False):
     return frame_num
 
 if __name__ == '__main__':
-    SRC_IMG = os.environ['img']
+    # filename
     SRC_VIDEO = os.environ['video']
-    RESULT_VIDEO = 'result.mp4'
+
+    # filename
+    SRC_IMG = os.environ['img']
+
+    # id
+    RESULT_VIDEO = os.environ['result']
+    CROP_VIDEO = f'crop_{RESULT_VIDEO}'
     OUT_BUCKET = 'spaceface-out'
+    SRC_BUCKET = 'spaceface-images'
+
     crop_scale = 2.5
+
+    s3 = boto3.client('s3')
+    s3.download_file(SRC_BUCKET, SRC_IMG, SRC_IMG)
+    s3.download_file(SRC_BUCKET, SRC_VIDEO, SRC_VIDEO)
 
     with open(cfg_path) as f:
         cfg = yaml.load(f)
@@ -118,7 +137,6 @@ if __name__ == '__main__':
         pass
     reader.close()
 
-
     bf = find_best_frame(source_image, driving_video)
     driving_video = crop_video(SRC_VIDEO, bf, driving_video)
 
@@ -126,20 +144,16 @@ if __name__ == '__main__':
     source_image = resize(source_image, (256, 256))[..., :3]
     driving_video = [resize(frame, (256, 256))[..., :3] for frame in driving_video]
 
-    print("c")
     generator, kp_detector = load_checkpoints(config_path=cfg_path, checkpoint_path=model_path)
 
     predictions = make_animation(source_image, driving_video, generator, kp_detector, relative=True)
 
-    res_fname = 'result.mp4'
-    imageio.mimsave(res_fname, [img_as_ubyte(frame) for frame in predictions], fps=fps)
-    fname = 'crop.mp4'
-    writer = imageio.get_writer(fname, fps=fps)
+    imageio.mimsave(RESULT_VIDEO, [img_as_ubyte(frame) for frame in predictions], fps=fps)
+
+    writer = imageio.get_writer(CROP_VIDEO, fps=fps)
     for img in driving_video:
         writer.append_data(img)
 
     writer.close()
-    s3 = boto3.client('s3')
-    s3.upload_file(res_fname, OUT_BUCKET, res_fname)
-    # s3.upload_file(RESULT_VIDEO, OUT_BUCKET, RESULT_VIDEO)
-    s3.upload_file(fname, OUT_BUCKET, fname)
+    s3.upload_file(CROP_VIDEO, OUT_BUCKET, CROP_VIDEO)
+    s3.upload_file(RESULT_VIDEO, OUT_BUCKET, RESULT_VIDEO)
