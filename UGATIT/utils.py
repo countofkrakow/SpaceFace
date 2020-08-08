@@ -97,15 +97,10 @@ def str2bool(x):
     return x.lower() in ('true')
 
 def download_image(bucket, bucket_key):
-    bucket = s3_resource.Bucket(bucket)
-    object = bucket.Object(bucket_key)
-    tmp = tempfile.NamedTemporaryFile()
-    with open(tmp.name, 'wb') as f:
-        object.download_fileobj(f)
-        img = mpimg.imread(tmp.name)
-        return img
+    s3_client.download_file(bucket, bucket_key, bucket_key)
 
 def upload_image(image, file_name):
     full_file_name = f'{file_name}/result.jpg'
-    image_string = cv2.imencode('.jpg', image)[1].tostring()
-    s3_client.put_object(Body=image_string, Bucket=out_bucket, Key=full_file_name, ContentType='image/jpeg')
+    print(f'image: {image}')
+    print(f'file_name: {file_name}')
+    s3_client.upload_file(image, out_bucket, full_file_name)
