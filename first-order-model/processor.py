@@ -17,9 +17,7 @@ from animate import normalize_kp
 from scipy.spatial import ConvexHull
 from faced import FaceDetector
 from demo import make_animation
-import face_alignment
 
-log_dir = 'log'
 cfg_path = 'config/vox-adv-256.yaml'
 model_path = 'vox-adv-cpk.pth.tar'
 
@@ -49,8 +47,7 @@ def load_checkpoints(config_path, checkpoint_path):
 
     return generator, kp_detector
 
-def crop_video(path, frame_num, driving_video, crop_scale=2.5):
-    face_detector = FaceDetector()
+def crop_video(path, driving_video, face_detector, crop_scale=3):
 
     cap = cv2.VideoCapture(path)
     fps = cap.get(cv2.CAP_PROP_FPS) # float
@@ -58,15 +55,17 @@ def crop_video(path, frame_num, driving_video, crop_scale=2.5):
     height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT) # float
     cap.release()
 
-    bboxes = face_detector.predict(driving_video[frame_num])
-    if len(bboxes) == 0:
-        for frame in driving_video:
-            bboxes = face_detector.predict(frame)
-            if len(bboxes) > 0:
-                x, y, w, h, _ = max(bboxes, key=lambda x: x[4])
-                break
-    else:
-        x, y, w, h, _ = max(bboxes, key=lambda x: x[4])
+    best_r = 0
+    best_frame = None
+    x, y, w, h = 0, 0, 0, 0
+    for frame in driving_video:
+        bboxes = face_detector.predict(frame)
+        if len(bboxes) > 0:
+            _x, _y, _w, _h, r = max(bboxes, key=lambda x: x[4])
+            if r > best_r:
+                best_r = r
+                best_frame = frame
+                x, y, w, h = _x, _y, _w, _h
 
     new_x = x - crop_scale * w // 2
     new_y = y - crop_scale * w // 2
@@ -78,9 +77,7 @@ def crop_video(path, frame_num, driving_video, crop_scale=2.5):
     return cropped_video
 
 
-def find_best_frame(source, driving, cpu=False):
-    import face_alignment
-
+def find_best_frame(source, driving, face_detector, cpu=False):
     def normalize_kp(kp):
         kp = kp - kp.mean(axis=0, keepdims=True)
         area = ConvexHull(kp[:, :2]).volume
@@ -88,9 +85,18 @@ def find_best_frame(source, driving, cpu=False):
         kp[:, :2] = kp[:, :2] / area
         return kp
 
-    fa = face_alignment.FaceAlignment(face_alignment.LandmarksType._2D, flip_input=True,
-                                      device='cpu' if cpu else 'cuda')
-    kp_source = fa.get_landmarks(255 * source)[0]
+    # todo REPLACE FACE_ALIGNMENT
+    bboxes, idx = [], 0
+    while len(bboxes) < 0:
+        frame = driving[idx]
+        bboxes = face_detector.predict(frame)
+        idx += 1
+        x, y, w, h, _ = max(bboxes, key=lambda x: x[4])
+
+    kp_source = fa.get_landmarks(255 * source)
+
+    # TODO check for none
+    kp_source = kp_source[0]
     kp_source = normalize_kp(kp_source)
     norm  = float('inf')
     frame_num = 0
@@ -122,10 +128,6 @@ if __name__ == '__main__':
     s3.download_file(SRC_BUCKET, SRC_IMG, SRC_IMG)
     s3.download_file(SRC_BUCKET, SRC_VIDEO, SRC_VIDEO)
 
-    with open(cfg_path) as f:
-        cfg = yaml.load(f)
-    os.makedirs(log_dir, exist_ok=True)
-
     source_image = imageio.imread(SRC_IMG)
     reader = imageio.get_reader(SRC_VIDEO)
     fps = int(reader.get_meta_data()['fps'])
@@ -137,8 +139,8 @@ if __name__ == '__main__':
         pass
     reader.close()
 
-    bf = find_best_frame(source_image, driving_video)
-    driving_video = crop_video(SRC_VIDEO, bf, driving_video)
+    fd = FaceDetector()
+    driving_video = crop_video(SRC_VIDEO, driving_video, fd)
 
     # Resize input
     source_image = resize(source_image, (256, 256))[..., :3]
