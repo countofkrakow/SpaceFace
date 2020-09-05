@@ -1,7 +1,7 @@
 boto3
 matplotlib
 ipython
-
+requests
 absl-py==0.9.0
 astor==0.8.0
 attrs==19.3.0

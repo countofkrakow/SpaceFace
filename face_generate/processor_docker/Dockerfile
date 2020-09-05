@@ -10,12 +10,10 @@ RUN apt-get update && \
         python3.6 -m pip install pip --upgrade && \
         python3.6 -m pip install wheel
 
-RUN apt-get install -y libsm6 libxext6 libxrender-dev
+RUN apt-get install -y libsm6 libxext6 libxrender-dev libgl1-mesa-glx
 
 RUN pip3 install torch==1.5.0+cu92 torchvision==0.6.0+cu92 -f https://download.pytorch.org/whl/torch_stable.html
-COPY . /app
-WORKDIR /app
+COPY . .
 RUN pip3 install -r processor_docker/requirements.txt
-WORKDIR interfacegan
-
-CMD ["python3.6", "processor.py"]
+RUN mkdir -p latents
+CMD ["python3.6", "interfacegan/processor.py"]

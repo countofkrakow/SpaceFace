@@ -96,8 +96,11 @@ def check_folder(log_dir):
 def str2bool(x):
     return x.lower() in ('true')
 
-def download_image(bucket, bucket_key):
-    s3_client.download_file(bucket, bucket_key, bucket_key)
+def download_image(bucket, bucket_key, dest=None):
+    if dest is None:
+        s3_client.download_file(bucket, bucket_key, bucket_key)
+    else:
+        s3_client.download_file(bucket, bucket_key, dest)
 
 def upload_image(image, file_name):
     full_file_name = f'{file_name}/result.jpg'
