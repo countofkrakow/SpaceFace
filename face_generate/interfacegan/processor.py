@@ -30,12 +30,12 @@ def setup():
     model = StyleGANGenerator(cfg['model_name'], logger)
     kwargs = {'latent_space_type': 'Wp'}
     boundaries = {
-        'age': 'boundaries/stylegan_ffhq_age_w_boundary.npy',
-        'gender': 'boundaries/stylegan_ffhq_gender_w_boundary.npy',
-        'pose': 'boundaries/stylegan_ffhq_pose_w_boundary.npy',
-        'smile': 'boundaries/stylegan_ffhq_smile_w_boundary.npy',
-        'glasses': 'boundaries/stylegan_ffhq_eyeglasses_w_boundary.npy',
-        'beauty': 'boundaries/beauty_boundary.npy'
+        'age': 'interfacegan/boundaries/stylegan_ffhq_age_w_boundary.npy',
+        'gender': 'interfacegan/boundaries/stylegan_ffhq_gender_w_boundary.npy',
+        'pose': 'interfacegan/boundaries/stylegan_ffhq_pose_w_boundary.npy',
+        'smile': 'interfacegan/boundaries/stylegan_ffhq_smile_w_boundary.npy',
+        'glasses': 'interfacegan/boundaries/stylegan_ffhq_eyeglasses_w_boundary.npy',
+        'beauty': 'interfacegan/boundaries/beauty_boundary.npy'
     }
 
 def fetch_args():
