@@ -4,16 +4,18 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get -qq update \
   && DEBIAN_FRONTEND=noninteractive apt-get -qqy install python3-pip ffmpeg git less nano libsm6 libxext6 libxrender-dev \
   && rm -rf /var/lib/apt/lists/*
 
-COPY . /app/
-WORKDIR /app
+COPY requirements.txt .
 
 RUN pip3 install \
   --upgrade setuptools \
   https://download.pytorch.org/whl/cu100/torch-1.0.0-cp36-cp36m-linux_x86_64.whl \
   -r requirements.txt
 
-WORKDIR faced
+COPY faced /app/faced
+WORKDIR /app/faced
 RUN python3 setup.py install
+
+COPY . /app
 WORKDIR /app
 
 CMD ["python3", "processor.py"]
