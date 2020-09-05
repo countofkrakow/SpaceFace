@@ -2,3 +2,11 @@ image_encode/processor_docker/env.list
 face_attribute_training*
 *css
 *pyc
+first-order-model/faced/build
+first-order-model/faced/dist
+first-order-model/faced/faced.egg-info
+first-order-model/*.mp4
+first-order-model/*.png
+first-order-model/vox-adv-cpk.pth.tar
+image_encode/cache/karras2019stylegan-ffhq-1024x1024.pkl
+image_encode/cache/shape_predictor_68_face_landmarks.dat.bz2
