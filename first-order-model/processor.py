@@ -136,7 +136,8 @@ if __name__ == '__main__':
     # Debug only:
     # cropped_input_writer = imageio.get_writer('cropped_' + RESULT_VIDEO, fps=fps)
 
-    frames_left = len(video_reader)
+    frames_left = len(video_reader) - 5 # - 5 is a hack - sometimes ffmpeg can't read the last frames for some reason.
+    print("Num frames: " + str(frames_left))
     frames_skipped = 0
 
     while frames_left > 0:
