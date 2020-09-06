@@ -172,4 +172,6 @@ if __name__ == '__main__':
       animated_video = animated_video.set_audio(original_video.audio.subclip(frames_skipped / fps))
     animated_video.write_videofile(RESULT_VIDEO)
 
-    s3.upload_file(RESULT_VIDEO, OUT_BUCKET, DESTINATION_VIDEO)
+    s3.upload_file(RESULT_VIDEO, OUT_BUCKET, DESTINATION_VIDEO, ExtraArgs={
+      'ACL': 'public-read'
+    })
