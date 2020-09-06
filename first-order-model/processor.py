@@ -105,15 +105,16 @@ def prepare_frame(frame, face_detector, previous_crop, desired_aspect, crop_scal
 if __name__ == '__main__':
     SRC_VIDEO = os.environ['VIDEO_FILE']
     SRC_IMG = os.environ['IMAGE_FILE']
+    DESTINATION_VIDEO = os.environ['RESULT_FILE']
 
-    # id
-    RESULT_VIDEO = os.environ['RESULT_FILE']
     SRC_BUCKET = os.environ['INPUT_BUCKET']
     OUT_BUCKET = os.environ['OUTPUT_BUCKET']
 
 
     # This many frames will be processed at once:
     FRAME_BATCH_SIZE = int(os.environ['FRAME_BATCH_SIZE']) # 200 is ~3 GB of RAM
+
+    RESULT_VIDEO = 'temp_output.mp4'
 
     s3 = boto3.client('s3')
     s3.download_file(SRC_BUCKET, SRC_IMG, SRC_IMG)
@@ -171,4 +172,4 @@ if __name__ == '__main__':
       animated_video = animated_video.set_audio(original_video.audio.subclip(frames_skipped / fps))
     animated_video.write_videofile(RESULT_VIDEO)
 
-    s3.upload_file(RESULT_VIDEO, OUT_BUCKET, RESULT_VIDEO)
+    s3.upload_file(RESULT_VIDEO, OUT_BUCKET, DESTINATION_VIDEO)
