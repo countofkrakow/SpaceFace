@@ -103,67 +103,72 @@ def prepare_frame(frame, face_detector, previous_crop, desired_aspect, crop_scal
 
 
 if __name__ == '__main__':
-    SRC_VIDEO = os.environ['VIDEO_FILE']
-    SRC_IMG = os.environ['IMAGE_FILE']
-    DESTINATION_VIDEO = os.environ['RESULT_FILE']
+  SRC_VIDEO = os.environ['VIDEO_FILE']
+  SRC_IMG = os.environ['IMAGE_FILE']
+  DESTINATION_VIDEO = os.environ['RESULT_FILE']
 
-    SRC_BUCKET = os.environ['INPUT_BUCKET']
-    OUT_BUCKET = os.environ['OUTPUT_BUCKET']
+  SRC_BUCKET = os.environ['INPUT_BUCKET']
+  OUT_BUCKET = os.environ['OUTPUT_BUCKET']
 
 
-    # This many frames will be processed at once:
-    FRAME_BATCH_SIZE = int(os.environ['FRAME_BATCH_SIZE']) # 200 is ~3 GB of RAM
+  # This many frames will be processed at once:
+  FRAME_BATCH_SIZE = int(os.environ['FRAME_BATCH_SIZE']) # 200 is ~3 GB of RAM
 
-    RESULT_VIDEO = 'temp_output.mp4'
+  RESULT_VIDEO = 'temp_output.mp4'
 
-    s3 = boto3.client('s3')
-    s3.download_file(SRC_BUCKET, SRC_IMG, SRC_IMG)
-    s3.download_file(SRC_BUCKET, SRC_VIDEO, SRC_VIDEO)
+  s3 = boto3.client('s3')
+  s3.download_file(SRC_BUCKET, SRC_IMG, SRC_IMG)
+  s3.download_file(SRC_BUCKET, SRC_VIDEO, SRC_VIDEO)
 
-    face_detector = FaceDetector()
-    previous_crop = None
+  face_detector = FaceDetector()
+  previous_crop = None
 
-    generator, kp_detector = load_checkpoints(config_path=cfg_path, checkpoint_path=model_path)
+  generator, kp_detector = load_checkpoints(config_path=cfg_path, checkpoint_path=model_path)
 
-    source_image = imageio.imread(SRC_IMG)
-    (source_height, source_width) = source_image.shape[0:2]
-    source_image = resize(source_image, PROCESSING_IMAGE_SIZE)[..., :3]
+  source_image = imageio.imread(SRC_IMG)
+  (source_height, source_width) = source_image.shape[0:2]
+  source_image = resize(source_image, PROCESSING_IMAGE_SIZE)[..., :3]
 
-    video_reader = imageio.get_reader(SRC_VIDEO)
-    fps = int(video_reader.get_meta_data()['fps'])
-    temp_video_file = "no_sound_" + RESULT_VIDEO
-    video_writer = imageio.get_writer(temp_video_file, fps=fps)
+  video_reader = imageio.get_reader(SRC_VIDEO)
+  fps = int(video_reader.get_meta_data()['fps'])
+  temp_video_file = "no_sound_" + RESULT_VIDEO
+  video_writer = imageio.get_writer(temp_video_file, fps=fps)
 
-    # Debug only:
-    # cropped_input_writer = imageio.get_writer('cropped_' + RESULT_VIDEO, fps=fps)
+  # Debug only:
+  # cropped_input_writer = imageio.get_writer('cropped_' + RESULT_VIDEO, fps=fps)
 
-    frames_left = len(video_reader) - 5 # - 5 is a hack - sometimes ffmpeg can't read the last frames for some reason.
-    print("Num frames: " + str(frames_left))
-    frames_skipped = 0
+  frames_left = len(video_reader) - 5 # - 5 is a hack - sometimes ffmpeg can't read the last frames for some reason.
+  print("Num frames: " + str(frames_left))
+  frames_skipped = 0
+  video_empty = True
 
-    while frames_left > 0:
-      frames = []
-      for _ in range(min(FRAME_BATCH_SIZE, frames_left)):
-        frame, previous_crop = prepare_frame(video_reader.get_next_data(), face_detector, previous_crop, source_width / source_height)
-        frames_left -= 1
-        if frame is None:
-          # This is the case where we don't see a face at the start of a video. We just skip those frames.
-          frames_skipped += 1
-          continue
-        # Debug only:
-        # cropped_input_writer.append_data(frame)
-        frames.append(frame)
+  while frames_left > 0:
+    frames = []
+    for _ in range(min(FRAME_BATCH_SIZE, frames_left)):
+      frame, previous_crop = prepare_frame(video_reader.get_next_data(), face_detector, previous_crop, source_width / source_height)
+      frames_left -= 1
+      if frame is None:
+        # This is the case where we don't see a face at the start of a video. We just skip those frames.
+        frames_skipped += 1
+        continue
+      # Debug only:
+      # cropped_input_writer.append_data(frame)
+      frames.append(frame)
 
-      if len(frames) > 0:
-        animated_image = make_animation(source_image, frames, generator, kp_detector, relative=True)
-        for animated_frame in animated_image:
-          video_writer.append_data(img_as_ubyte(animated_frame))
+    if len(frames) > 0:
+      video_empty = False
+      animated_image = make_animation(source_image, frames, generator, kp_detector, relative=True)
+      for animated_frame in animated_image:
+        video_writer.append_data(img_as_ubyte(animated_frame))
 
-    video_reader.close()
-    video_writer.close()
-    # Debug only:
-    # cropped_input_writer.close()
+  video_reader.close()
+  video_writer.close()
+  # Debug only:
+  # cropped_input_writer.close()
 
+  if video_empty:
+    status = 'failure no face detected in the video'
+  else:
     # Add sound:
     animated_video = moviepy.VideoFileClip(temp_video_file)
     original_video = moviepy.VideoFileClip(SRC_VIDEO)
@@ -175,3 +180,12 @@ if __name__ == '__main__':
     s3.upload_file(RESULT_VIDEO, OUT_BUCKET, DESTINATION_VIDEO, ExtraArgs={
       'ACL': 'public-read'
     })
+    status = 'success'
+
+  status_file = 'status.txt'
+  with open(status_file, 'w') as f:
+    f.write(status)
+
+  s3.upload_file(status_file, OUT_BUCKET, DESTINATION_VIDEO + '_status', ExtraArgs={
+    'ACL': 'public-read'
+  })
