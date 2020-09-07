@@ -4,11 +4,17 @@ import Api from '../constants/Api';
 const UPLOADS_KEY = 'uploads';
 const MANIPULATIONS_KEY = 'manipulations';
 
+// Video states.
+export const UPLOADING = 'uploading';
+export const FAILED_UPLOAD = 'failed upload';
+export const UPLOADED = 'uploaded';
+export const PROCESSING = 'processing';
+export const PROCESSING_FAILED = 'processing failed';
+export const PROCESSING_ERROR = 'processing error';
+export const COMPLETE = 'complete';
+
 async function getStoredUploads() {
-  // AsyncStorage.setItem(
-  //   UPLOADS_KEY,
-  //   '[{"uri":"https://spaceface-images.s3-us-west-2.amazonaws.com/464db573-b51e-11ea-8d94-6b06521ea385","key":"464db573-b51e-11ea-8d94-6b06521ea385","ready":true}]'
-  // );
+  // AsyncStorage.setItem(UPLOADS_KEY, '[]');
   const uploadsStr = await AsyncStorage.getItem(UPLOADS_KEY);
   if (uploadsStr) {
     return JSON.parse(uploadsStr);
@@ -17,12 +23,22 @@ async function getStoredUploads() {
 }
 
 async function checkUploadReady(upload) {
-  if (upload.ready) {
+  if (upload.state != PROCESSING) {
     return;
   }
-  const result = await fetch(Api.encode_result(upload.key));
+  const result = await fetch(Api.fom_video_status(upload.key));
+  console.log(Api.fom_video_status(upload.key));
+  console.log(result.status);
   if (result.status == 200) {
-    upload.ready = true;
+    const status = await result.text();
+    console.log(status);
+    if (status == 'success') {
+      upload.state = COMPLETE;
+    } else {
+      upload.state = PROCESSING_FAILED;
+      upload.error = status;
+    }
+    StoreUpload(upload);
   }
 }
 

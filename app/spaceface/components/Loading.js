@@ -13,6 +13,17 @@ export function LoadingImage() {
     />
   );
 }
+export function UploadingImage() {
+  return (
+    <Image
+      style={{
+        width: 50,
+        height: 50,
+      }}
+      source={require('../assets/images/uploading.gif')}
+    />
+  );
+}
 
 export function LoadingScreen() {
   return (

@@ -10,4 +10,8 @@ export default {
       .map((arg) => `${arg}=${args[arg]}`)
       .join('&'),
   manipulate_result: (id) => api + 'edit/result?id=' + encodeURIComponent(id),
+  fom_video_upload: (fileName) => 'https://fom-input.s3-us-west-2.amazonaws.com/' + fileName,
+  fom_process_video: (id) => api + 'fom-frontdoor?id=' + encodeURIComponent(id),
+  fom_video_result: (id) => `https://fom-output.s3-us-west-2.amazonaws.com/${id}.mp4`,
+  fom_video_status: (id) => `https://fom-output.s3-us-west-2.amazonaws.com/${id}.mp4_status`,
 };
