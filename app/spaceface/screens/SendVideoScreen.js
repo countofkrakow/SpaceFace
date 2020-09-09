@@ -16,6 +16,7 @@ import {
 } from '../data/Data';
 import { UUIDV4, GetImageExtension } from '../util';
 import Toast from 'react-native-tiny-toast';
+import * as VideoThumbnails from 'expo-video-thumbnails';
 
 export default function SendVideoScreen({ route, navigation }) {
   const { uri } = route.params;
@@ -75,9 +76,12 @@ export default function SendVideoScreen({ route, navigation }) {
           const videoFileName = videoId + fileType;
           const bucketUri = Api.fom_video_upload(videoFileName);
 
+          const thumbnail = await VideoThumbnails.getThumbnailAsync(uri);
+
           let newUpload = {
             key: videoId,
             localUri: uri,
+            ogThumbnail: thumbnail.uri,
             bucketUri: bucketUri,
             state: UPLOADING,
 
