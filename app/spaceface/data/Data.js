@@ -59,15 +59,33 @@ export async function StoreUpload(upload) {
     return;
   }
   uploadLock = true;
-  let currentUploads = await GetUploads();
-  let sameKeys = currentUploads.map((u, i) => [u, i]).filter(([u, i]) => u.key == upload.key);
-  if (sameKeys.length > 0) {
-    currentUploads[sameKeys[0][1]] = upload;
-  } else {
-    currentUploads = currentUploads.concat([upload]);
+  try {
+    let currentUploads = await getStoredUploads();
+    let sameKeys = currentUploads.map((u, i) => [u, i]).filter(([u, i]) => u.key == upload.key);
+    if (sameKeys.length > 0) {
+      currentUploads[sameKeys[0][1]] = upload;
+    } else {
+      currentUploads = currentUploads.concat([upload]);
+    }
+    await AsyncStorage.setItem(UPLOADS_KEY, JSON.stringify(currentUploads));
+  } finally {
+    uploadLock = false;
   }
-  await AsyncStorage.setItem(UPLOADS_KEY, JSON.stringify(currentUploads));
-  uploadLock = false;
+}
+
+export async function DeleteUpload(upload) {
+  if (uploadLock) {
+    setTimeout(() => DeleteUpload(upload), 5);
+    return;
+  }
+  uploadLock = true;
+  try {
+    let currentUploads = await getStoredUploads();
+    currentUploads = currentUploads.filter((otherUpload) => otherUpload.key != upload.key);
+    await AsyncStorage.setItem(UPLOADS_KEY, JSON.stringify(currentUploads));
+  } finally {
+    uploadLock = false;
+  }
 }
 
 async function GetAllManipulations() {

@@ -14,6 +14,7 @@ import {
   COMPLETE,
   PROCESSING_ERROR,
   PROCESSING_FAILED,
+  DeleteUpload,
 } from '../data/Data';
 import Api from '../constants/Api';
 import { Video } from 'expo-av';
@@ -37,7 +38,7 @@ export default class GalleryScreen extends React.Component {
       ],
       loading: true,
       refreshing: false,
-      toDelete: null,
+      selectedIndex: null,
     };
     this.props.navigation.addListener('focus', () => {
       this.refresh();
@@ -70,34 +71,6 @@ export default class GalleryScreen extends React.Component {
     this.refresh();
   }
 
-  renderNoImage() {
-    return (
-      <View style={styles.container}>
-        <ScrollView
-          style={styles.container}
-          contentContainerStyle={styles.contentContainer}
-          refreshControl={<RefreshControl refreshing={false} onRefresh={this.refresh.bind(this)} />}
-        >
-          <View style={styles.getStartedContainer}>
-            <Text style={styles.getStartedText}>
-              Welcome to the fakes app. You can make Trump talk using the button below. Upload a
-              video like the one below to animate Trump's face. Keep your face clearly visible in
-              the video and don't move around too much.
-            </Text>
-            <Text style={styles.getStartedText}>Example Upload:</Text>
-            <View style={styles.sampleImageContainer}>
-              <Image
-                source={require('../assets/images/example.gif')}
-                style={styles.sampleUploadImage}
-              />
-            </View>
-          </View>
-          <StyledButton text="Create Fake" onPress={this.createFakeButtonPress.bind(this)} />
-        </ScrollView>
-      </View>
-    );
-  }
-
   renderUploads() {
     const rowsArray = new Array(Math.ceil(this.state.uploads.length / 2)).fill(0);
     return (
@@ -111,35 +84,46 @@ export default class GalleryScreen extends React.Component {
               onRefresh={this.refresh.bind(this)}
             />
           }
-          onTouchStart={() => this.setState({ toDelete: null })}
+          // onTouchStart={() => this.setState({ selectedIndex: null })}
         >
           {rowsArray.map((_, i) => {
-            const upInds = 2 * i + 1 < this.state.uploads.length ? [2 * i, 2 * i + 1] : [2 * i];
+            const upInds = 2 * i + 1 < this.state.uploads.length ? [2 * i, 2 * i + 1] : [2 * i, -1];
             return (
               <View style={{ flexDirection: 'row' }} key={i}>
-                {upInds.map((j) => (
-                  <UploadView
-                    key={j}
-                    upload={this.state.uploads[j]}
-                    navigation={this.props.navigation}
-                    onShowDelete={() => this.setState({ toDelete: j })}
-                    isSelected={this.state.toDelete == j}
-                  />
-                ))}
+                {upInds.map((j) =>
+                  j >= 0 ? (
+                    <UploadView
+                      key={j}
+                      upload={this.state.uploads[j]}
+                      navigation={this.props.navigation}
+                      onSelect={() =>
+                        this.setState({ selectedIndex: this.state.selectedIndex == j ? null : j })
+                      }
+                      isSelected={this.state.selectedIndex == j}
+                    />
+                  ) : (
+                    <View style={{ flex: 1, margin: 10 }} />
+                  )
+                )}
               </View>
             );
           })}
-          <StyledButton text="Add" onPress={this.createFakeButtonPress.bind(this)} />
         </ScrollView>
-        {this.state.toDelete != null && (
+        {this.state.selectedIndex != null && (
           <View style={{ flexDirection: 'row', padding: 20, justifyContent: 'space-between' }}>
-            <TouchableOpacity>
+            <TouchableOpacity
+              onPress={async () => {
+                await DeleteUpload(this.state.uploads[this.state.selectedIndex]);
+                this.state.uploads.splice(this.state.selectedIndex, 1);
+                this.setState({ selectedIndex: null, uploads: this.state.uploads });
+              }}
+            >
               <AntDesign name="delete" size={44} color="black" />
             </TouchableOpacity>
-            {this.state.uploads[this.state.toDelete].state == PROCESSING_FAILED && (
-              <Text>{this.state.uploads[this.state.toDelete].error}</Text>
+            {this.state.uploads[this.state.selectedIndex].state == PROCESSING_FAILED && (
+              <Text>{this.state.uploads[this.state.selectedIndex].error}</Text>
             )}
-            <TouchableOpacity onPress={() => this.setState({ toDelete: null })}>
+            <TouchableOpacity onPress={() => this.setState({ selectedIndex: null })}>
               <Entypo name="cross" size={44} color="black" />
             </TouchableOpacity>
           </View>
@@ -152,10 +136,7 @@ export default class GalleryScreen extends React.Component {
     if (this.state.loading) {
       return <LoadingScreen />;
     }
-    if (this.state.uploads.length > 0) {
-      return this.renderUploads();
-    }
-    return this.renderNoImage();
+    return this.renderUploads();
   }
 
   async createFakeButtonPress() {
@@ -163,17 +144,17 @@ export default class GalleryScreen extends React.Component {
   }
 }
 
-function UploadView({ upload, navigation, onShowDelete, isSelected }) {
+function UploadView({ upload, navigation, onSelect, isSelected }) {
   return (
     <TouchableOpacity
       onPress={() => {
         if (upload.state == PROCESSING_FAILED) {
-          onShowDelete();
+          onSelect();
         } else if (upload.state == COMPLETE) {
           navigation.push('ViewFakeScreen', { uri: Api.fom_video_result(upload.key) });
         }
       }}
-      onLongPress={onShowDelete}
+      onLongPress={onSelect}
       style={{
         flexDirection: 'row',
         margin: 10,
@@ -202,7 +183,11 @@ function UploadView({ upload, navigation, onShowDelete, isSelected }) {
         />
       )}
       <Image
-        source={require('../assets/images/triangle.png')}
+        source={
+          upload.state == COMPLETE
+            ? require('../assets/images/trumpTriangle.png')
+            : require('../assets/images/triangle.png')
+        }
         style={{
           width: '100%',
           height: '100%',
@@ -211,31 +196,33 @@ function UploadView({ upload, navigation, onShowDelete, isSelected }) {
           position: 'absolute',
         }}
       />
-      <View
-        style={{
-          width: '100%',
-          height: '100%',
-          aspectRatio: 1,
-          top: 5,
-          left: 5,
-          position: 'absolute',
-          flexDirection: 'row',
-          justifyContent: 'flex-end',
-          alignItems: 'flex-end',
-        }}
-      >
+      {upload.state != COMPLETE && (
         <View
-          style={{ width: '66%', height: '66%', justifyContent: 'center', alignItems: 'center' }}
+          style={{
+            width: '100%',
+            height: '100%',
+            aspectRatio: 1,
+            top: 5,
+            left: 5,
+            position: 'absolute',
+            flexDirection: 'row',
+            justifyContent: 'flex-end',
+            alignItems: 'flex-end',
+          }}
         >
-          {upload.state == UPLOADING ? (
-            <UploadingImage />
-          ) : upload.state == PROCESSING ? (
-            <LoadingImage />
-          ) : (
-            <MaterialIcons name="error-outline" size={50} color="red" />
-          )}
+          <View
+            style={{ width: '66%', height: '66%', justifyContent: 'center', alignItems: 'center' }}
+          >
+            {upload.state == UPLOADING ? (
+              <UploadingImage />
+            ) : upload.state == PROCESSING ? (
+              <LoadingImage />
+            ) : (
+              <MaterialIcons name="error-outline" size={50} color="red" />
+            )}
+          </View>
         </View>
-      </View>
+      )}
     </TouchableOpacity>
   );
 }

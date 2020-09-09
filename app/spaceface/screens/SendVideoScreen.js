@@ -88,7 +88,7 @@ export default function SendVideoScreen({ route, navigation }) {
             processed: false,
           };
           await StoreUpload(newUpload);
-          navigation.navigate('GalleryScreen');
+          navigation.navigate('RecordFakeScreen', { updateTime: new Date().getTime() });
 
           console.log(`Uploading ${uri} to ${bucketUri}`);
           let uploadError = null;

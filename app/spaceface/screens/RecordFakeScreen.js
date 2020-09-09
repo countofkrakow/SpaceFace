@@ -22,7 +22,11 @@ export default function RecordFakeScreen({ route, navigation }) {
     (async () => {
       setPhotoThumbnails(await GetStoredThumbnails());
     })();
-  }, []);
+  }, [route.params?.updateTime]);
+
+  // navigation.addListener('focus', async () => {
+  //   setPhotoThumbnails(await GetStoredThumbnails());
+  // });
 
   return (
     <View style={{ flex: 1 }}>
