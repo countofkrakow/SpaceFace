@@ -22,6 +22,10 @@ async function getStoredUploads() {
   return [];
 }
 
+export async function GetStoredThumbnails() {
+  return (await getStoredUploads()).map((upload) => upload.ogThumbnail);
+}
+
 async function checkUploadReady(upload) {
   if (upload.state != PROCESSING) {
     return;

@@ -4,7 +4,7 @@ import * as React from 'react';
 import { Platform, StatusBar, StyleSheet, View } from 'react-native';
 
 import useCachedResources from './hooks/useCachedResources';
-import MainScreen from './screens/MainScreen';
+import GalleryScreen from './screens/GalleryScreen';
 import RecordFakeScreen from './screens/RecordFakeScreen';
 import SendVideoScreen from './screens/SendVideoScreen';
 import ViewFakeScreen from './screens/ViewFakeScreen';
@@ -21,11 +21,11 @@ export default function App(props) {
       <View style={styles.container}>
         {Platform.OS === 'ios' && <StatusBar barStyle="dark-content" />}
         <NavigationContainer>
-          <Stack.Navigator initialRouteName="MainScreen">
+          <Stack.Navigator initialRouteName="RecordFakeScreen">
             <Stack.Screen
               options={{ title: 'SpaceFace' }}
-              name="MainScreen"
-              component={MainScreen}
+              name="GalleryScreen"
+              component={GalleryScreen}
             />
             <Stack.Screen
               options={{ title: 'SpaceFace' }}

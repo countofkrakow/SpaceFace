@@ -88,7 +88,7 @@ export default function SendVideoScreen({ route, navigation }) {
             processed: false,
           };
           await StoreUpload(newUpload);
-          navigation.navigate('MainScreen');
+          navigation.navigate('GalleryScreen');
 
           console.log(`Uploading ${uri} to ${bucketUri}`);
           let uploadError = null;

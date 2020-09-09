@@ -5,7 +5,7 @@ import { ScrollView } from 'react-native-gesture-handler';
 import { MonoText } from '../components/StyledText';
 import { LoadingImage, LoadingScreen, UploadingImage } from '../components/Loading';
 import Colors from '../constants/Colors';
-import StyledButton from './../components/StyledButton';
+import StyledButton from '../components/StyledButton';
 import {
   GetUploads,
   StoreUpload,
@@ -22,7 +22,7 @@ import Toast from 'react-native-tiny-toast';
 import { AntDesign } from '@expo/vector-icons';
 import { Entypo } from '@expo/vector-icons';
 
-export default class MainScreen extends React.Component {
+export default class GalleryScreen extends React.Component {
   constructor(props) {
     super(props);
     this.state = {

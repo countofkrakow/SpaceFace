@@ -1,53 +1,86 @@
 import * as React from 'react';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { View, Text, Image, Slider, StyleSheet, Picker } from 'react-native';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { TouchableOpacity, ScrollView } from 'react-native-gesture-handler';
 import * as Permissions from 'expo-permissions';
 import { Camera } from 'expo-camera';
+import { HelpPopup } from '../components/HelpPopup';
+import { GetStoredThumbnails } from '../data/Data';
 
 export default function RecordFakeScreen({ route, navigation }) {
-  const [cameraAllowed, setCameraAllowed] = useState(false);
   const [cameraDirection, setCameraDirection] = useState(Camera.Constants.Type.front);
+  const [showHelp, setShowHelp] = useState(true);
+  const [showPermissionsError, setShowPermissionsError] = useState(false);
+  const [photoThumbnails, setPhotoThumbnails] = useState([]);
   const camera = useRef();
   let isRecording = false;
 
-  if (!cameraAllowed) {
-    (async () => {
-      const permissions = await Permissions.askAsync(
-        Permissions.CAMERA,
-        Permissions.AUDIO_RECORDING
-      );
-      if (permissions.granted) {
-        setCameraAllowed(true);
-      }
-    })();
+  let permissionsLock = false;
 
-    return (
-      <View style={styles.blackScreen}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Feather name="arrow-left" size={40} style={{ margin: 5, color: '#fff' }} />
-        </TouchableOpacity>
-      </View>
-    );
-  }
+  useEffect(() => {
+    (async () => {
+      setPhotoThumbnails(await GetStoredThumbnails());
+    })();
+  }, []);
 
   return (
     <View style={{ flex: 1 }}>
-      <View style={{ flex: 1, justifyContent: 'center' }}>
-        <Camera
-          style={{ aspectRatio: 3 / 4 }}
-          type={cameraDirection}
-          onFacesDetected={() => {}}
-          ref={camera}
-        ></Camera>
+      <View style={{ flex: 1, justifyContent: 'center', backgroundColor: 'black' }}>
+        {showHelp ? (
+          <HelpPopup
+            showPermissionsError={showPermissionsError}
+            onClose={async () => {
+              if (permissionsLock) {
+                return;
+              }
+              permissionsLock = true;
+              try {
+                const permissions = await Permissions.askAsync(
+                  Permissions.CAMERA,
+                  Permissions.AUDIO_RECORDING
+                );
+                if (permissions.granted) {
+                  setShowHelp(false);
+                } else {
+                  setShowPermissionsError(true);
+                }
+              } finally {
+                permissionsLock = false;
+              }
+            }}
+          />
+        ) : (
+          <Camera
+            style={{ aspectRatio: 3 / 4 }}
+            type={cameraDirection}
+            onFacesDetected={() => {}}
+            ref={camera}
+          ></Camera>
+        )}
       </View>
-      {/* <View style={{ flex: 1 }}></View> */}
       <View style={styles.controlsContainer}>
-        <View style={{ width: 40 }}></View>
+        {photoThumbnails.length > 0 ? (
+          <TouchableOpacity
+            style={{ width: 46, height: 45, borderColor: 'black', borderWidth: 3 }}
+            onPress={() => {
+              navigation.push('GalleryScreen');
+            }}
+          >
+            <Image
+              source={{ uri: photoThumbnails[photoThumbnails.length - 1] }}
+              style={{ width: 40, height: 40, resizeMode: 'cover' }}
+            />
+          </TouchableOpacity>
+        ) : (
+          <View style={{ width: 40 }}></View>
+        )}
         <TouchableOpacity
           style={{}}
           onPress={() => {
+            if (showHelp) {
+              return;
+            }
             if (isRecording) {
               camera.current.stopRecording();
             } else {
@@ -68,6 +101,9 @@ export default function RecordFakeScreen({ route, navigation }) {
         <TouchableOpacity
           style={{}}
           onPress={() => {
+            if (showHelp) {
+              return;
+            }
             setCameraDirection(
               cameraDirection === Camera.Constants.Type.back
                 ? Camera.Constants.Type.front
