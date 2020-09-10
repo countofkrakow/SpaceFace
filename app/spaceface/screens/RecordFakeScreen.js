@@ -8,6 +8,34 @@ import { Camera } from 'expo-camera';
 import { HelpPopup } from '../components/HelpPopup';
 import { GetStoredThumbnails } from '../data/Data';
 
+function CameraControls({ photoThumbnails, navigation, onCapturePress, onReversePress }) {
+  return (
+    <View style={styles.controlsContainer}>
+      {photoThumbnails.length > 0 ? (
+        <TouchableOpacity
+          style={styles.photoThumbnailContainer}
+          onPress={() => {
+            navigation.push('GalleryScreen');
+          }}
+        >
+          <Image
+            source={{ uri: photoThumbnails[photoThumbnails.length - 1] }}
+            style={{ width: 35, height: 35, resizeMode: 'cover' }}
+          />
+        </TouchableOpacity>
+      ) : (
+        <View style={{ width: 40 }}></View>
+      )}
+      <TouchableOpacity style={{}} onPress={onCapturePress}>
+        <Feather name="target" size={70} style={styles.controlIcon} />
+      </TouchableOpacity>
+      <TouchableOpacity style={{}} onPress={onReversePress}>
+        <Ionicons name="ios-reverse-camera" size={50} style={styles.controlIcon} />
+      </TouchableOpacity>
+    </View>
+  );
+}
+
 export default function RecordFakeScreen({ route, navigation }) {
   const [cameraDirection, setCameraDirection] = useState(Camera.Constants.Type.front);
   const [showHelp, setShowHelp] = useState(true);
@@ -24,14 +52,10 @@ export default function RecordFakeScreen({ route, navigation }) {
     })();
   }, [route.params?.updateTime]);
 
-  // navigation.addListener('focus', async () => {
-  //   setPhotoThumbnails(await GetStoredThumbnails());
-  // });
-
-  return (
-    <View style={{ flex: 1 }}>
-      <View style={{ flex: 1, justifyContent: 'center', backgroundColor: 'black' }}>
-        {showHelp ? (
+  if (showHelp) {
+    return (
+      <View style={{ flex: 1, backgroundColor: 'black' }}>
+        <View style={{ flex: 1, justifyContent: 'center' }}>
           <HelpPopup
             showPermissionsError={showPermissionsError}
             onClose={async () => {
@@ -54,70 +78,51 @@ export default function RecordFakeScreen({ route, navigation }) {
               }
             }}
           />
-        ) : (
-          <Camera
-            style={{ aspectRatio: 3 / 4 }}
-            type={cameraDirection}
-            onFacesDetected={() => {}}
-            ref={camera}
-          ></Camera>
-        )}
+        </View>
+        <CameraControls photoThumbnails={photoThumbnails} navigation={navigation} />
       </View>
-      <View style={styles.controlsContainer}>
-        {photoThumbnails.length > 0 ? (
-          <TouchableOpacity
-            style={{ width: 46, height: 45, borderColor: 'black', borderWidth: 3 }}
-            onPress={() => {
-              navigation.push('GalleryScreen');
-            }}
-          >
-            <Image
-              source={{ uri: photoThumbnails[photoThumbnails.length - 1] }}
-              style={{ width: 40, height: 40, resizeMode: 'cover' }}
-            />
-          </TouchableOpacity>
-        ) : (
-          <View style={{ width: 40 }}></View>
-        )}
-        <TouchableOpacity
-          style={{}}
-          onPress={() => {
-            if (showHelp) {
-              return;
-            }
-            if (isRecording) {
-              camera.current.stopRecording();
-            } else {
-              (async () => {
-                const { uri } = await camera.current.recordAsync({
-                  quality: '1080p',
-                  maxDuration: 20,
-                });
-                navigation.push('SendVideoScreen', { uri });
-                isRecording = false;
-              })();
-              isRecording = true;
-            }
-          }}
-        >
-          <Feather name="target" size={50} style={styles.controlIcon} />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={{}}
-          onPress={() => {
-            if (showHelp) {
-              return;
-            }
-            setCameraDirection(
-              cameraDirection === Camera.Constants.Type.back
-                ? Camera.Constants.Type.front
-                : Camera.Constants.Type.back
-            );
-          }}
-        >
-          <Ionicons name="ios-reverse-camera" size={50} style={styles.controlIcon} />
-        </TouchableOpacity>
+    );
+  }
+
+  return (
+    <View style={{ flex: 1, backgroundColor: 'black' }}>
+      <View style={{ flex: 1, justifyContent: 'center' }}>
+        <Camera
+          style={{ aspectRatio: 3 / 4 }}
+          type={cameraDirection}
+          onFacesDetected={() => {}}
+          ref={camera}
+        ></Camera>
       </View>
+      <CameraControls
+        photoThumbnails={photoThumbnails}
+        navigation={navigation}
+        onCapturePress={() => {
+          if (isRecording) {
+            camera.current.stopRecording();
+          } else {
+            (async () => {
+              const { uri } = await camera.current.recordAsync({
+                quality: '1080p',
+                maxDuration: 20,
+              });
+              navigation.push('SendVideoScreen', { uri });
+              isRecording = false;
+            })();
+            isRecording = true;
+          }
+        }}
+        onReversePress={() => {
+          if (showHelp) {
+            return;
+          }
+          setCameraDirection(
+            cameraDirection === Camera.Constants.Type.back
+              ? Camera.Constants.Type.front
+              : Camera.Constants.Type.back
+          );
+        }}
+      />
     </View>
   );
 }
@@ -143,9 +148,19 @@ const styles = StyleSheet.create({
   controlsContainer: {
     flexDirection: 'row',
     marginTop: 10,
-    paddingLeft: 10,
-    paddingRight: 10,
+    paddingLeft: 30,
+    paddingRight: 30,
+    paddingBottom: 20,
     justifyContent: 'space-between',
+    alignItems: 'center',
   },
-  controlIcon: {},
+  controlIcon: {
+    color: 'white',
+  },
+  photoThumbnailContainer: {
+    width: 40,
+    height: 40,
+    borderColor: '#ddd',
+    borderWidth: 3,
+  },
 });

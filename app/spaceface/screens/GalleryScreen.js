@@ -102,7 +102,7 @@ export default class GalleryScreen extends React.Component {
                       isSelected={this.state.selectedIndex == j}
                     />
                   ) : (
-                    <View style={{ flex: 1, margin: 10 }} />
+                    <View style={{ flex: 1, margin: 10 }} key={j} />
                   )
                 )}
               </View>

@@ -8,6 +8,7 @@ import GalleryScreen from './screens/GalleryScreen';
 import RecordFakeScreen from './screens/RecordFakeScreen';
 import SendVideoScreen from './screens/SendVideoScreen';
 import ViewFakeScreen from './screens/ViewFakeScreen';
+import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
 
 const Stack = createStackNavigator();
 
@@ -19,21 +20,24 @@ export default function App(props) {
   } else {
     return (
       <View style={styles.container}>
-        {Platform.OS === 'ios' && <StatusBar barStyle="dark-content" />}
+        {/* {Platform.OS === 'ios' && <StatusBar barStyle="dark-content" />} */}
+        <StatusBar />
         <NavigationContainer>
           <Stack.Navigator initialRouteName="RecordFakeScreen">
             <Stack.Screen
-              options={{ title: 'SpaceFace' }}
+              options={{ title: 'Gallery' }}
               name="GalleryScreen"
               component={GalleryScreen}
             />
             <Stack.Screen
-              options={{ title: 'SpaceFace' }}
               name="RecordFakeScreen"
               component={RecordFakeScreen}
+              options={{
+                headerShown: false,
+              }}
             />
             <Stack.Screen
-              options={{ title: 'SpaceFace' }}
+              options={{ title: 'Upload Video' }}
               name="SendVideoScreen"
               component={SendVideoScreen}
             />
