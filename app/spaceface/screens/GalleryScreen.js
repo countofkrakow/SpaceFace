@@ -5,7 +5,6 @@ import { ScrollView } from 'react-native-gesture-handler';
 import { MonoText } from '../components/StyledText';
 import { LoadingImage, LoadingScreen, UploadingImage } from '../components/Loading';
 import Colors from '../constants/Colors';
-import StyledButton from '../components/StyledButton';
 import {
   GetUploads,
   StoreUpload,

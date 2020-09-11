@@ -32,8 +32,9 @@ export function HelpPopup({ onClose, showPermissionsError }) {
 
 const styles = StyleSheet.create({
   popup: {
-    borderWidth: 6,
-    borderColor: 'white',
+    paddingTop: 10,
+    borderColor: Colors.background,
+    borderRadius: 7,
     margin: 10,
     backgroundColor: Colors.background,
   },
