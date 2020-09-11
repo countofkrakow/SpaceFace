@@ -103,8 +103,13 @@ def prepare_frame(frame, face_detector, previous_crop, desired_aspect, crop_scal
 
 
 if __name__ == '__main__':
+  # Don't use s3 and get files from local system. Used for debugging.
+  LOCAL_RUN = False
+  if 'LOCAL_RUN' in os.environ and os.environ['LOCAL_RUN'] == 'true':
+    LOCAL_RUN = True
+
   SRC_VIDEO = os.environ['VIDEO_FILE']
-  SRC_IMG = os.environ['IMAGE_FILE']
+  SRC_IMG = "trump.jpg" # os.environ['IMAGE_FILE']
   DESTINATION_VIDEO = os.environ['RESULT_FILE']
 
   SRC_BUCKET = os.environ['INPUT_BUCKET']
@@ -116,16 +121,22 @@ if __name__ == '__main__':
 
   RESULT_VIDEO = 'temp_output.mp4'
 
-  s3 = boto3.client('s3')
-  s3.download_file(SRC_BUCKET, SRC_IMG, SRC_IMG)
-  s3.download_file(SRC_BUCKET, SRC_VIDEO, SRC_VIDEO)
+  # Crop from original image. x,y,w,h
+  TRUMP_IMAGE_CROP = (163, 34, 217, 264)
+
+  if not LOCAL_RUN:
+    s3 = boto3.client('s3')
+    # s3.download_file(SRC_BUCKET, SRC_IMG, SRC_IMG)
+    s3.download_file(SRC_BUCKET, SRC_VIDEO, SRC_VIDEO)
 
   face_detector = FaceDetector()
   previous_crop = None
 
   generator, kp_detector = load_checkpoints(config_path=cfg_path, checkpoint_path=model_path)
 
-  source_image = imageio.imread(SRC_IMG)
+  uncropped_image = imageio.imread(SRC_IMG)
+  source_image = uncropped_image[TRUMP_IMAGE_CROP[1]:TRUMP_IMAGE_CROP[1] + TRUMP_IMAGE_CROP[3],
+    TRUMP_IMAGE_CROP[0]:TRUMP_IMAGE_CROP[0] + TRUMP_IMAGE_CROP[2],:]
   (source_height, source_width) = source_image.shape[0:2]
   source_image = resize(source_image, PROCESSING_IMAGE_SIZE)[..., :3]
 
@@ -159,7 +170,13 @@ if __name__ == '__main__':
       video_empty = False
       animated_image = make_animation(source_image, frames, generator, kp_detector, relative=True)
       for animated_frame in animated_image:
-        video_writer.append_data(img_as_ubyte(animated_frame))
+        resized_frame = img_as_ubyte(resize(animated_frame, (source_height, source_width))[..., :3])
+        original_image = np.copy(uncropped_image)
+        original_image[TRUMP_IMAGE_CROP[1]:TRUMP_IMAGE_CROP[1] + TRUMP_IMAGE_CROP[3],
+            TRUMP_IMAGE_CROP[0]:TRUMP_IMAGE_CROP[0] + TRUMP_IMAGE_CROP[2],:] = resized_frame
+        video_writer.append_data(original_image)
+
+  print(f"Num frames skipped: {frames_skipped}")
 
   video_reader.close()
   video_writer.close()
@@ -177,15 +194,17 @@ if __name__ == '__main__':
       animated_video = animated_video.set_audio(original_video.audio.subclip(frames_skipped / fps))
     animated_video.write_videofile(RESULT_VIDEO)
 
-    s3.upload_file(RESULT_VIDEO, OUT_BUCKET, DESTINATION_VIDEO, ExtraArgs={
-      'ACL': 'public-read'
-    })
+    if not LOCAL_RUN:
+      s3.upload_file(RESULT_VIDEO, OUT_BUCKET, DESTINATION_VIDEO, ExtraArgs={
+        'ACL': 'public-read'
+      })
     status = 'success'
 
   status_file = 'status.txt'
   with open(status_file, 'w') as f:
     f.write(status)
 
-  s3.upload_file(status_file, OUT_BUCKET, DESTINATION_VIDEO + '_status', ExtraArgs={
-    'ACL': 'public-read'
-  })
+  if not LOCAL_RUN:
+    s3.upload_file(status_file, OUT_BUCKET, DESTINATION_VIDEO + '_status', ExtraArgs={
+      'ACL': 'public-read'
+    })
