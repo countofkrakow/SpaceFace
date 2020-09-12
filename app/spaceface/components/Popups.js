@@ -30,6 +30,20 @@ export function HelpPopup({ onClose, showPermissionsError }) {
   );
 }
 
+export function DataWarningPopup({ onClose }) {
+  return (
+    <View style={styles.popup}>
+      <View style={styles.getStartedContainer}>
+        <Text style={styles.getStartedText}>
+          Warning, we need to upload the video to our servers to do heavy computation. This may use
+          data if you're not on wifi. If you have a limited data plan I suggest doing this on WiFi.
+        </Text>
+      </View>
+      <StyledButton text="Upload" onPress={onClose} />
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   popup: {
     paddingTop: 10,

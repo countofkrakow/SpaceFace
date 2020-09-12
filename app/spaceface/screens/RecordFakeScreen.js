@@ -5,7 +5,7 @@ import { Feather, Ionicons } from '@expo/vector-icons';
 import { TouchableOpacity, ScrollView } from 'react-native-gesture-handler';
 import * as Permissions from 'expo-permissions';
 import { Camera } from 'expo-camera';
-import { HelpPopup } from '../components/HelpPopup';
+import { HelpPopup } from '../components/Popups';
 import { GetStoredThumbnails } from '../data/Data';
 
 function CameraControls({ photoThumbnails, navigation, onCapturePress, onReversePress }) {

@@ -37,7 +37,7 @@ export default function App(props) {
               }}
             />
             <Stack.Screen
-              options={{ title: 'Upload Video' }}
+              options={{ headerShown: false }}
               name="SendVideoScreen"
               component={SendVideoScreen}
             />
