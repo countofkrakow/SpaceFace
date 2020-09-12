@@ -4,6 +4,7 @@ import { View, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import { Video } from 'expo-av';
+import { DownloadImage } from '../util';
 
 export default function ViewFakeScreen({ route, navigation }) {
   const { uri } = route.params;
@@ -29,6 +30,9 @@ export default function ViewFakeScreen({ route, navigation }) {
           }}
         >
           <Feather name={isPlaying ? 'pause' : 'play'} size={50} style={styles.controlIcon} />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => DownloadImage(uri)}>
+          <Feather name="download" size={40} style={{ margin: 5 }} />
         </TouchableOpacity>
       </View>
     </View>
