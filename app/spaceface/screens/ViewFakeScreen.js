@@ -23,14 +23,6 @@ export default function ViewFakeScreen({ route, navigation }) {
         style={{ aspectRatio: 3 / 4 }}
       />
       <View style={{ alignItems: 'center' }}>
-        <TouchableOpacity
-          style={{}}
-          onPress={() => {
-            setPlaying(!isPlaying);
-          }}
-        >
-          <Feather name={isPlaying ? 'pause' : 'play'} size={50} style={styles.controlIcon} />
-        </TouchableOpacity>
         <TouchableOpacity onPress={() => DownloadImage(uri)}>
           <Feather name="download" size={40} style={{ margin: 5 }} />
         </TouchableOpacity>
