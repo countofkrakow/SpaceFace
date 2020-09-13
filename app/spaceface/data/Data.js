@@ -31,7 +31,6 @@ async function checkUploadReady(upload) {
     return;
   }
   const result = await fetch(Api.fom_video_status(upload.key));
-  console.log(Api.fom_video_status(upload.key));
   console.log(result.status);
   if (result.status == 200) {
     const status = await result.text();

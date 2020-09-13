@@ -26,15 +26,7 @@ export default class GalleryScreen extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      uploads: [
-        // {
-        //   uri: 'https://www.yourdictionary.com/images/definitions/lg/10750.person.jpg',
-        // },
-        // {
-        //   uri:
-        //     'https://www.biography.com/.image/ar_1:1%2Cc_fill%2Ccs_srgb%2Cg_face%2Cq_auto:good%2Cw_300/MTcyMzE0MzI2NTU0NjQ5ODEy/ang-lee-gettyimages-163118045.jpg',
-        // },
-      ],
+      uploads: [],
       loading: true,
       refreshing: false,
       selectedIndex: null,
@@ -42,7 +34,24 @@ export default class GalleryScreen extends React.Component {
     this.props.navigation.addListener('focus', () => {
       this.refresh();
     });
+    this.props.navigation.addListener('blur', () => {
+      this.refreshTimeout != null && clearTimeout(this.refreshTimeout);
+      this.refreshTimeout = null;
+    });
     this.refreshTimeout = null;
+  }
+
+  async timerRefresh() {
+    console.log('Refreshing');
+    this.setState({ uploads: await GetUploads() });
+    this.refreshTimeout = null;
+    this.startTimerRefresh();
+  }
+
+  async startTimerRefresh() {
+    if (this.refreshTimeout == null) {
+      this.refreshTimeout = setTimeout(() => this.timerRefresh(), 6000);
+    }
   }
 
   async refresh() {
@@ -56,14 +65,7 @@ export default class GalleryScreen extends React.Component {
       loading: false,
       uploads: newUploads,
     });
-    if (
-      this.refreshTimeout == null &&
-      newUploads.some((upload) => upload.status == PROCESSING || upload.status == UPLOADING)
-    ) {
-      this.refreshTimeout = setTimeout(() => {
-        this.refresh();
-      }, 60000);
-    }
+    this.startTimerRefresh();
   }
 
   async componentDidMount() {
@@ -121,6 +123,10 @@ export default class GalleryScreen extends React.Component {
             </TouchableOpacity>
             {this.state.uploads[this.state.selectedIndex].state == PROCESSING_FAILED && (
               <Text>{this.state.uploads[this.state.selectedIndex].error}</Text>
+            )}
+            {(this.state.uploads[this.state.selectedIndex].state == PROCESSING ||
+              this.state.uploads[this.state.selectedIndex].state == UPLOADING) && (
+              <Text>Processing the video. May take a while.</Text>
             )}
             <TouchableOpacity onPress={() => this.setState({ selectedIndex: null })}>
               <Entypo name="cross" size={44} color="black" />
