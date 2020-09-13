@@ -45,7 +45,8 @@ export async function UploadVideo(uri, navigation) {
     processed: false,
   };
   await StoreUpload(newUpload);
-  navigation.navigate('RecordFakeScreen', { updateTime: new Date().getTime() });
+  navigation.goBack();
+  navigation.push('GalleryScreen');
 
   console.log(`Uploading ${uri} to ${bucketUri}`);
   let uploadError = null;

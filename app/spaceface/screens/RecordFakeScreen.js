@@ -46,11 +46,9 @@ export default function RecordFakeScreen({ route, navigation }) {
 
   let permissionsLock = false;
 
-  useEffect(() => {
-    (async () => {
-      setPhotoThumbnails(await GetStoredThumbnails());
-    })();
-  }, [route.params?.updateTime]);
+  navigation.addListener('focus', async () => {
+    setPhotoThumbnails(await GetStoredThumbnails());
+  });
 
   if (showHelp) {
     return (
