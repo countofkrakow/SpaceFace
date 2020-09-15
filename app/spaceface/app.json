@@ -2,11 +2,7 @@
   "expo": {
     "name": "spaceface",
     "slug": "spaceface",
-    "platforms": [
-      "ios",
-      "android",
-      "web"
-    ],
+    "platforms": ["ios", "android", "web"],
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -19,9 +15,7 @@
     "updates": {
       "fallbackToCacheTimeout": 0
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true
     },
@@ -29,7 +23,12 @@
       "favicon": "./assets/images/favicon.png"
     },
     "android": {
-      "package": "com.spacefacehq.spaceface"
+      "package": "com.spacefacehq.spaceface",
+      "adaptiveIcon": {
+        "foregroundImage": "assets/images/icons/TrumpSaidWhat-foreground-2.png",
+        "backgroundColor": "#eb5d48"
+      },
+      "icon": "assets/images/icons/TrumpSaidWhat-old-icon.png"
     }
   }
 }
