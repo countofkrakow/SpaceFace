@@ -8,14 +8,22 @@ import { Camera } from 'expo-camera';
 import { HelpPopup } from '../components/Popups';
 import { GetStoredThumbnails } from '../data/Data';
 
-function CameraControls({ photoThumbnails, navigation, onCapturePress, onReversePress }) {
+function CameraControls({
+  photoThumbnails,
+  navigation,
+  onCapturePress,
+  onReversePress,
+  isRecording,
+}) {
   return (
     <View style={styles.controlsContainer}>
       {photoThumbnails.length > 0 ? (
         <TouchableOpacity
           style={styles.photoThumbnailContainer}
           onPress={() => {
-            navigation.push('GalleryScreen');
+            if (!isRecording) {
+              navigation.push('GalleryScreen');
+            }
           }}
         >
           <Image
@@ -27,7 +35,11 @@ function CameraControls({ photoThumbnails, navigation, onCapturePress, onReverse
         <View style={{ width: 40 }}></View>
       )}
       <TouchableOpacity style={{}} onPress={onCapturePress}>
-        <Feather name="target" size={70} style={styles.controlIcon} />
+        <Feather
+          name="target"
+          size={70}
+          style={[styles.controlIcon, { color: isRecording ? 'red' : 'white' }]}
+        />
       </TouchableOpacity>
       <TouchableOpacity style={{}} onPress={onReversePress}>
         <Ionicons name="ios-reverse-camera" size={50} style={styles.controlIcon} />
@@ -42,7 +54,7 @@ export default function RecordFakeScreen({ route, navigation }) {
   const [showPermissionsError, setShowPermissionsError] = useState(false);
   const [photoThumbnails, setPhotoThumbnails] = useState([]);
   const camera = useRef();
-  let isRecording = false;
+  const [isRecording, setIsRecording] = useState(false);
 
   let permissionsLock = false;
 
@@ -95,6 +107,7 @@ export default function RecordFakeScreen({ route, navigation }) {
       <CameraControls
         photoThumbnails={photoThumbnails}
         navigation={navigation}
+        isRecording={isRecording}
         onCapturePress={() => {
           if (isRecording) {
             camera.current.stopRecording();
@@ -104,14 +117,14 @@ export default function RecordFakeScreen({ route, navigation }) {
                 quality: '1080p',
                 maxDuration: 20,
               });
+              setIsRecording(false);
               navigation.push('SendVideoScreen', { uri });
-              isRecording = false;
             })();
-            isRecording = true;
+            setIsRecording(true);
           }
         }}
         onReversePress={() => {
-          if (showHelp) {
+          if (!isRecording) {
             return;
           }
           setCameraDirection(
