@@ -27,8 +27,9 @@ export async function GetStoredThumbnails() {
 }
 
 async function checkUploadReady(upload) {
+  let hasUpdates = false;
   if (upload.state != PROCESSING) {
-    return;
+    return hasUpdates;
   }
   const result = await fetch(Api.fom_video_status(upload.key));
   console.log(result.status);
@@ -41,8 +42,22 @@ async function checkUploadReady(upload) {
       upload.state = PROCESSING_FAILED;
       upload.error = status;
     }
+    hasUpdates = true;
     StoreUpload(upload);
   }
+  return hasUpdates;
+}
+
+// The point of this is for the background task to know we can send a push notification to the user.
+// The UI will then get the actual uploads again.
+export async function NewUploadsReady() {
+  const uploads = await getStoredUploads();
+  let updates = await Promise.all(uploads.map(checkUploadReady));
+  const hasReadyUpdates = updates.some((hasUpdates) => hasUpdates);
+  const newUpdatesExpected = uploads.some((upload) =>
+    [PROCESSING, UPLOADING].includes(upload.state)
+  );
+  return { hasReadyUpdates, newUpdatesExpected };
 }
 
 export async function GetUploads() {

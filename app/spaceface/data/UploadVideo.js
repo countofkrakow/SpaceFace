@@ -10,6 +10,7 @@ import {
 import { UUIDV4, GetImageExtension } from '../util';
 import Toast from 'react-native-tiny-toast';
 import * as VideoThumbnails from 'expo-video-thumbnails';
+import { StartUploadChecking } from '../background_task/CheckUploadStatusTask';
 
 export async function UploadVideo(uri, navigation) {
   const videoId = UUIDV4();
@@ -86,4 +87,6 @@ export async function UploadVideo(uri, navigation) {
   }
   console.log(`New state: ${newUpload.state}`);
   await StoreUpload(newUpload);
+
+  StartUploadChecking();
 }

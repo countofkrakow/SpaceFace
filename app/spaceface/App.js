@@ -9,6 +9,7 @@ import RecordFakeScreen from './screens/RecordFakeScreen';
 import SendVideoScreen from './screens/SendVideoScreen';
 import ViewFakeScreen from './screens/ViewFakeScreen';
 import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
+import { DefineUpdateTask } from './background_task/CheckUploadStatusTask';
 
 const Stack = createStackNavigator();
 
@@ -59,3 +60,5 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
 });
+
+DefineUpdateTask();
