@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useState, useRef } from 'react';
-import { View, Text, Image, Slider, StyleSheet, Picker } from 'react-native';
+import { View, Text, Image, Slider, StyleSheet, Picker, Platform } from 'react-native';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { TouchableOpacity, ScrollView } from 'react-native-gesture-handler';
 import { Video } from 'expo-av';
@@ -51,6 +51,16 @@ export default function SendVideoScreen({ route, navigation }) {
           />
         </View>
       )}
+      {Platform.OS == 'ios' && (
+        <View style={styles.overlayX}>
+          <Feather
+            name="x"
+            size={50}
+            style={{ color: 'white' }}
+            onPress={() => navigation.goBack()}
+          />
+        </View>
+      )}
     </View>
   );
 }
@@ -76,5 +86,10 @@ const styles = StyleSheet.create({
     height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  overlayX: {
+    position: 'absolute',
+    top: 100,
+    left: 0,
   },
 });
