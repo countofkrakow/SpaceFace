@@ -3,7 +3,7 @@
     "name": "spaceface",
     "slug": "spaceface",
     "platforms": ["ios", "android", "web"],
-    "version": "1.0.0",
+    "version": "1.0.3",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "myapp",
@@ -28,7 +28,8 @@
         "foregroundImage": "assets/images/icons/TrumpSaidWhat-foreground-2.png",
         "backgroundColor": "#eb5d48"
       },
-      "icon": "assets/images/icons/TrumpSaidWhat-old-icon.png"
+      "icon": "assets/images/icons/TrumpSaidWhat-old-icon.png",
+      "versionCode": 4
     }
   }
 }
