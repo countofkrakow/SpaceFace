@@ -31,8 +31,9 @@ export async function UploadVideo(uri, navigation) {
   });
   console.log('Got blob');
 
-  const videoFileName = videoId + fileType;
+  const videoFileName = videoId;
   const bucketUri = Api.fom_video_upload(videoFileName);
+  const mimeType = 'video/' + fileType.substr(1);
 
   const thumbnail = await VideoThumbnails.getThumbnailAsync(uri);
 
@@ -57,7 +58,7 @@ export async function UploadVideo(uri, navigation) {
       body: videoBlob,
       headers: {
         'x-amz-acl': 'public-read-write',
-        'Content-Type': 'video/mp4',
+        'Content-Type': mimeType,
       },
     });
     if (!uploadResponse.ok) {
