@@ -10,3 +10,5 @@ first-order-model/*.png
 first-order-model/vox-adv-cpk.pth.tar
 image_encode/cache/karras2019stylegan-ffhq-1024x1024.pkl
 image_encode/cache/shape_predictor_68_face_landmarks.dat.bz2
+UGATIT/anime_stylegan_model.pkl
+UGATIT/checkpoint/
