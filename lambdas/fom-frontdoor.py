@@ -5,7 +5,7 @@ from uuid import uuid1
 
 def lambda_handler(event, context):
   video_id = event["queryStringParameters"]["id"]
-  video_file = video_id + ".mp4"
+  video_file = video_id
   print("Video id: " + video_id)
 
   s3 = boto3.resource('s3')
