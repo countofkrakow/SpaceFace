@@ -140,7 +140,7 @@ if __name__ == '__main__':
   (source_height, source_width) = source_image.shape[0:2]
   source_image = resize(source_image, PROCESSING_IMAGE_SIZE)[..., :3]
 
-  video_reader = imageio.get_reader(SRC_VIDEO)
+  video_reader = imageio.get_reader(SRC_VIDEO, format="FFMPEG")
   fps = int(video_reader.get_meta_data()['fps'])
   temp_video_file = "no_sound_" + RESULT_VIDEO
   video_writer = imageio.get_writer(temp_video_file, fps=fps)
