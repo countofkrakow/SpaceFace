@@ -21,7 +21,7 @@ def lambda_handler(event, context):
   environment = {
     'VIDEO_FILE' : video_file,
     'IMAGE_FILE' : 't3.png',
-    'RESULT_FILE' : video_file
+    'RESULT_FILE' : video_file + '.mp4'
   }
   job_def = os.environ['job_def']
   job_queue_arn = os.environ['queue_arn']
