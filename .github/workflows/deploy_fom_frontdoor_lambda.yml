@@ -1,0 +1,22 @@
+name: deploy fom frontdoor to lambda
+on:
+  push:
+    branches: [ master ]
+jobs:
+  deploy_source:
+    name: build and deploy lambda
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: zip
+        uses: montudor/action-zip@v0.1.0
+        with:
+          args: zip -qq ./fom-frontdoor.zip ./lambdas/fom-frontdoor.py
+      - name: deploy fom lambda
+        uses: appleboy/lambda-action@master
+        with:
+          aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws_region: us-west-2
+          function_name: fom-frontdoor
+          zip_file: fom-frontdoor.zip
