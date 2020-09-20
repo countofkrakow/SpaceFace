@@ -21,7 +21,7 @@ function CameraControls({
         <TouchableOpacity
           style={styles.photoThumbnailContainer}
           onPress={() => {
-            if (!isRecording) {
+            if (!isRecording && navigation) {
               navigation.push('GalleryScreen');
             }
           }}
@@ -89,7 +89,7 @@ export default function RecordFakeScreen({ route, navigation }) {
             }}
           />
         </View>
-        <CameraControls photoThumbnails={photoThumbnails} navigation={navigation} />
+        <CameraControls photoThumbnails={photoThumbnails} />
       </View>
     );
   }
