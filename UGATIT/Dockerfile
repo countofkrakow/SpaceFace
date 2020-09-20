@@ -6,5 +6,5 @@ RUN pip install --upgrade pip
 RUN apt update
 COPY . .
 RUN pip install -r requirements.txt
-RUN mkdir -p /proj /proj/record /proj/img
+RUN mkdir -p /proj /proj/record /proj/img /proj/out
 CMD ["python", "processor.py"]

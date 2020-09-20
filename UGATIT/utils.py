@@ -102,8 +102,9 @@ def download_image(bucket, bucket_key, dest=None):
     else:
         s3_client.download_file(bucket, bucket_key, dest)
 
-def upload_image(image, file_name):
-    full_file_name = f'{file_name}/result.jpg'
-    print(f'image: {image}')
-    print(f'file_name: {file_name}')
+def upload_image(image, folder_name, fname=None):
+    if fname is None:
+        full_file_name = f'{folder_name}/result.jpg'
+    else:
+        full_file_name = f'{folder_name}/{fname}'
     s3_client.upload_file(image, out_bucket, full_file_name)
