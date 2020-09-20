@@ -11,6 +11,12 @@ RUN pip3 install \
   https://download.pytorch.org/whl/cu100/torch-1.0.0-cp36-cp36m-linux_x86_64.whl \
   -r requirements.txt
 
+RUN chmod 777 /tmp
+RUN apt-get update
+RUN apt-get install -y curl
+RUN mkdir /app
+RUN curl -o /app/vox-adv-cpk.pth.tar https://spaceface-build-inputs.s3-us-west-2.amazonaws.com/first_order_model/vox-adv-cpk.pth.tar
+
 COPY faced /app/faced
 WORKDIR /app/faced
 RUN python3 setup.py install
