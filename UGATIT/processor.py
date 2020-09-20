@@ -22,7 +22,8 @@ import dataset_tool
 images_bucket = 'spaceface-images'
 img_path = "/proj/img/"
 record_path = "/proj/record/"
-stylegan_model_pkl = "anime_stylegan_model.pkl"
+#stylegan_model_pkl = "anime_stylegan_model.pkl"
+stylegan_model_pkl = 'FFHQ512-CartoonsAlignedHQ31v3.pkl'
 
 del_record = os.path.join(record_path, '-r10.tfrecords')
 
@@ -87,6 +88,11 @@ if __name__ == '__main__':
     project_real_images("record","/proj",1,10, stylegan_model_pkl, num_steps)
 
     result_fname = f'image0000-step{num_steps}.png'
+
+    for x in os.listdir('/proj/img'):
+        fname = os.path.basename(x)
+        image_url = upload_image(f'/proj/img/{x}', "animeresult", fname)
+        print(fname)
 
     image_url = upload_image(f'/proj/img/{result_fname}', "animeresult", 'result.png')
     
