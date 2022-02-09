@@ -4,6 +4,6 @@ numpy
 tqdm
 pillow
 scikit-learn
-tensorflow-gpu==1.12.2
+tensorflow-gpu==2.5.3
 urllib3
 werkzeug
