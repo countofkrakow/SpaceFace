@@ -3,7 +3,7 @@ boto3
 tqdm
 pillow
 scikit-learn
-numpy==1.18
+numpy==1.22.0
 imutils
 bz2file
 requests
